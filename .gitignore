@@ -1,0 +1,18 @@
+# Secrets (D-0010, D-0012): never commit real env files
+.env
+*.secret.env
+*.local.env
+
+# Build, test, coverage
+coverage.out
+coverage/
+dist/
+node_modules/
+playwright-report/
+test-results/
+
+# OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan

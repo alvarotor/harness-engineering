@@ -1,0 +1,258 @@
+# Decision & preference registry: machine-readable project memory (ADR-0001).
+# Every durable decision, preference, constraint or convention gets an entry.
+# - status: proposed | accepted | superseded | deprecated
+# - source: user (stated/approved by owner) | default (agent proposal, not contested)
+# - enforced_by: files that enforce the entry TODAY (validated by tools/harness rule R-REG-004)
+# - planned_enforced_by: enforcement that arrives with later changes (not validated)
+# - superseded_by: required when status is superseded
+# Change accepted entries only through an OpenSpec change (see CONTRIBUTING.md).
+
+version: 1
+
+decisions:
+  - id: D-0001
+    title: Repository is project memory; instruction precedence; controlled decision changes
+    status: accepted
+    source: user
+    adr: docs/adr/0001-repository-as-project-memory.md
+    enforced_by: [AGENTS.md, CONTRIBUTING.md, openspec/config.yaml, docs/agents, tools/harness]
+
+  - id: D-0002
+    title: Monorepo; deployables never import each other; infra/ holds all env and deploy material; Makefile is the single entry point
+    status: accepted
+    source: default
+    adr: docs/adr/0002-monorepo-topology.md
+    enforced_by: [AGENTS.md, CONTRIBUTING.md, Makefile, tools/harness]
+    planned_enforced_by: ["tools/harness: cross-deployable import rule"]
+
+  - id: D-0003
+    title: All deployables are containers; Compose for local/dev/prod; Kubernetes-ready rules; build once, promote by digest
+    status: accepted
+    source: user
+    adr: docs/adr/0003-containers-compose-k8s-ready.md
+    enforced_by: [docs/standards/engineering.md, infra/AGENTS.md]
+    planned_enforced_by: [infra/compose, templates, "tools/harness: compose rules"]
+
+  - id: D-0004
+    title: Go is the default backend language (hexagonal-lite); another language only when its core dependency requires it
+    status: accepted
+    source: user
+    adr: docs/adr/0004-go-hexagonal-lite-backends.md
+    scope: services/*
+    default_language: go
+    exceptions:
+      - path: services/auth
+        language: typescript
+        reason: Better Auth is TypeScript-only
+    enforced_by: [services/AGENTS.md, docs/standards/engineering.md, tools/harness]
+    planned_enforced_by: [templates/go-service, templates/node-service, "tools/harness: layer import rule"]
+
+  - id: D-0005
+    title: Identity is services/auth (Better Auth, Node 24 + Hono); email magic link only; staff invite-only; JWT/JWKS verified locally
+    status: accepted
+    source: user
+    adr: docs/adr/0005-identity-better-auth.md
+    enforced_by: [docs/standards/security.md, docs/catalog/services.yaml]
+    planned_enforced_by: [services/auth]
+
+  - id: D-0006
+    title: Frontends are Preact + Vite + TS SPAs in static non-root nginx containers with runtime config
+    status: accepted
+    source: user
+    adr: docs/adr/0006-frontends-preact-vite-spa.md
+    scope: apps/*
+    default_language: typescript
+    enforced_by: [apps/AGENTS.md, docs/standards/engineering.md, tools/harness]
+    planned_enforced_by: [templates/ts-spa]
+
+  - id: D-0007
+    title: Protobuf contracts (buf); gRPC for synchronous service-to-service calls; REST edge via Vanguard transcoding; OpenAPI generated
+    status: accepted
+    source: user
+    adr: docs/adr/0007-contracts-proto-connect-rest.md
+    enforced_by: [contracts/AGENTS.md, docs/standards/engineering.md]
+    planned_enforced_by: [contracts/proto/buf.yaml, .github/workflows]
+
+  - id: D-0008
+    title: One Postgres server per env with one database per service; owner/app roles; explicit expand/contract migrations; backups deferred
+    status: accepted
+    source: user
+    adr: docs/adr/0008-postgres-db-per-service.md
+    enforced_by: [services/AGENTS.md, docs/standards/engineering.md]
+    planned_enforced_by: [infra/postgres, templates]
+
+  - id: D-0009
+    title: Traefik is the only exposed container; routes via Compose labels; Docker API only via read-only socket proxy; subdomains; ops port 8081 never routed
+    status: accepted
+    source: user
+    adr: docs/adr/0009-edge-and-network.md
+    enforced_by: [infra/AGENTS.md, docs/standards/security.md]
+    planned_enforced_by: [infra/compose, infra/traefik, "tools/harness: compose rules"]
+
+  - id: D-0010
+    title: One VM per env running Compose; GHCR by digest (owner from github.repository_owner); GitHub Environments secrets; prod needs approval
+    status: accepted
+    source: user
+    adr: docs/adr/0010-deployment-and-secrets.md
+    enforced_by: [infra/AGENTS.md]
+    planned_enforced_by: [.github/workflows, infra/env]
+
+  - id: D-0011
+    title: JSON logs, request/trace correlation across HTTP, gRPC and events; OpenTelemetry enabled by env; local otel-lgtm via profile
+    status: accepted
+    source: user
+    adr: docs/adr/0011-observability.md
+    enforced_by: [docs/standards/engineering.md]
+    planned_enforced_by: [packages/go/platform, templates]
+
+  - id: D-0012
+    title: Security baseline OWASP ASVS L1; GDPR applicability undetermined until launch country is known
+    status: accepted
+    source: user
+    adr: docs/adr/0012-security-baseline.md
+    enforced_by: [docs/standards/security.md, docs/catalog/services.yaml]
+    planned_enforced_by: [.github/workflows]
+
+  - id: D-0013
+    title: GitHub Actions with reusable, path-filtered workflows; every step is a make target; actions pinned by SHA
+    status: accepted
+    source: user
+    adr: docs/adr/0013-ci-cd-github-actions.md
+    enforced_by: [Makefile]
+    planned_enforced_by: [.github/workflows]
+
+  - id: D-0014
+    title: One service per business domain; new entities of an existing domain stay in that service
+    status: accepted
+    source: user
+    adr: docs/adr/0014-service-per-domain.md
+    enforced_by: [docs/catalog/services.yaml, openspec/config.yaml, services/AGENTS.md]
+    planned_enforced_by: [templates]
+
+  - id: D-0015
+    title: Async messaging via Redis pub/sub (at-most-once, loss-tolerable events only) behind Publisher/Subscriber ports
+    status: accepted
+    source: user
+    adr: docs/adr/0015-async-redis-pubsub.md
+    enforced_by: [contracts/AGENTS.md, docs/standards/engineering.md, openspec/config.yaml]
+    planned_enforced_by: [templates/go-service]
+
+  - id: D-0016
+    title: Infrastructure in OpenTofu with provider-neutral capability modules; AWS is the default implementation; encrypted state
+    status: accepted
+    source: user
+    adr: docs/adr/0016-infrastructure-opentofu.md
+    enforced_by: [infra/AGENTS.md]
+    planned_enforced_by: [infra/tofu, .github/workflows]
+
+  - id: D-0017
+    title: Unit tests for all hand-written code; coverage >= 80% per deployable/library; e2e (Playwright) for user flows when possible
+    status: accepted
+    source: user
+    adr: docs/adr/0017-testing-strategy.md
+    enforced_by: [docs/standards/testing.md, openspec/config.yaml, tools/harness, Makefile]
+    planned_enforced_by: [templates, .github/workflows, "tools/harness: test-file presence rule"]
+
+  - id: D-0018
+    title: scripts/bootstrap.sh is the first step on a new machine and the fix when make doctor fails; mise installs .tool-versions; make or make-proj ensured; Docker checked only
+    status: accepted
+    source: user
+    adr: docs/adr/0018-dev-bootstrap-mise.md
+    enforced_by: [scripts/bootstrap.sh, Makefile, AGENTS.md, CONTRIBUTING.md, tools/harness]
+
+preferences:
+  - id: P-0001
+    statement: Product is B2C. Roles are customer, support, admin. Single tenant.
+    source: user
+  - id: P-0002
+    statement: Start simple and reversible. Introduce gateway, durable broker, mesh, Kubernetes or cache only on the triggers in ARCHITECTURE.md §13.
+    source: user
+  - id: P-0003
+    statement: Never silently make expensive, security-sensitive or hard-to-reverse decisions. Ask the owner.
+    source: user
+  - id: P-0004
+    statement: Never claim validation passed unless it was executed.
+    source: user
+  - id: P-0005
+    statement: Current stage defines the way of working (harness) and a first basic architecture. No product features yet.
+    source: user
+  - id: P-0006
+    statement: Language/framework choices are defaults; a specific library choice (e.g. Better Auth) may justify an override, recorded as an exception.
+    source: user
+  - id: P-0007
+    statement: Agents may install developer tools locally (user space). If an install needs privileges (sudo), give the owner the exact commands instead.
+    source: user
+  - id: P-0008
+    statement: "Agent roles are: orchestrator (sequences work, never edits), architect, planner (also archives), implementer, test-engineer, security-reviewer (only for security-sensitive changes), reviewer, documentation, devops."
+    source: user
+  - id: P-0009
+    statement: Supported developer OSes are macOS and Linux only (never Windows). The OS-provided GNU-compatible make is used; no custom task runner. make is a documented prerequisite because minimal Linux images and macOS without developer tools may lack it. Without sudo, a user-space copy is installed as make-proj, never as make.
+    source: user
+  - id: P-0010
+    statement: Every role documents its own work in the same step, following the documentation map in docs/agents/README.md. The documentation role only verifies this against the change and fixes descriptive gaps, reporting who missed them.
+    source: user
+
+assumptions:
+  - id: A1
+    statement: Project slug "har"; domains are config (DOMAIN).
+  - id: A2
+    statement: Seconds of downtime per deploy is acceptable in dev and prod initially.
+  - id: A3
+    statement: Staff accounts (support, admin) are invite-only, created by admins.
+  - id: A4
+    statement: Initial deployables are apps/web, apps/admin, services/auth, services/core.
+  - id: A5
+    statement: services/core hosts the first business domain and is renamed once that domain is named.
+
+open_questions:
+  - id: Q3
+    question: Email provider and public domain.
+    needed_by: before-dev-deploy
+  - id: Q4
+    question: Launch country (decides GDPR applicability).
+    needed_by: before-prod
+
+resolved_questions:
+  - id: Q1
+    question: GitHub owner for repo and GHCR.
+    resolution: No repo yet; workflows use github.repository_owner, so nothing is hard-coded.
+  - id: Q2
+    question: Prod Postgres backups / managed.
+    resolution: No backups yet (owner). Postgres runs as a container on the env VM. Backups are mandatory before real user data reaches prod.
+  - id: Q5
+    question: Does the OpenAPI generator support google.api.http annotations?
+    resolution: Yes (owner confirmed).
+
+# Corrections log: what changed and why, so future sessions don't reintroduce old choices.
+changelog:
+  - date: 2026-10-15
+    changes:
+      - "Edge proxy: Caddy -> Traefik (owner)."
+      - "Traefik routing via Docker labels + read-only socket proxy (owner, over file-provider recommendation)."
+      - "Async: none/outbox-first -> Redis pub/sub (owner, over RabbitMQ/Streams recommendation; at-most-once accepted)."
+      - "Go reframed as the default backend language with an override rule; services/auth in Node is the first exception."
+      - "Postgres: explicitly one server per env with a database per service; backups deferred."
+      - "Infra: OpenTofu, provider-neutral capability modules, AWS default."
+      - "Testing: >= 80% coverage, unit tests for all code, e2e when possible."
+      - "Service granularity: one service per business domain."
+      - "Auth: passkeys removed; email magic link only for all roles."
+      - "GDPR: out of scope -> undetermined (launch country unknown)."
+  - date: 2026-10-15
+    changes:
+      - "Owner approved Phase 2: D-0001..D-0017 accepted (OpenSpec change bootstrap-dev-harness)."
+      - "Tooling installed in user space: OpenTofu 1.13.1, buf 1.74.0, golangci-lint 2.14.0, Playwright 1.64.1 (P-0007)."
+      - "GNU make 4.4.1 was missing; extracted from the apt package into ~/.local/bin without sudo. Owner may replace it with: sudo apt-get install -y make."
+      - "Harness (bootstrap-dev-harness) implemented: 17 rules, make check passing."
+  - date: 2026-10-15
+    changes:
+      - "Roles 6 -> 9 (owner): added orchestrator and documentation; security review split out of reviewer into security-reviewer (P-0008)."
+      - "GNU Make documented as a prerequisite (P-0009)."
+  - date: 2026-10-15
+    changes:
+      - "Documentation role narrowed (owner): it verifies each role documented its own work and fixes gaps; it no longer owns system-wide docs or archiving (P-0010). Archiving moved to the planner."
+      - "Reviewer no longer checks docs; documentation role does."
+      - "Supported OSes: macOS and Linux only; use the OS make, no custom runner (P-0009). Windows install row removed."
+      - "User-space make copy removed from ~/.local/bin/make (it was being mistaken for the OS make) and reinstalled as ~/.local/bin/make-proj (owner). A user-space copy must never be named make."
+  - date: 2026-10-15
+    changes:
+      - "Added scripts/bootstrap.sh with mise (D-0018, owner). Ran on this machine: mise 2026.10.11 and all 6 pinned tools installed under ~/.local/share/mise; make doctor ok."

@@ -1,0 +1,42 @@
+schema: spec-driven
+
+# Project context injected into every OpenSpec artifact and workflow.
+# Keep this to constraints an agent cannot infer from code. Details live in the linked files.
+context: |
+  Repository = project memory (ADR-0001). Before writing any artifact, read:
+  - docs/decisions/registry.yaml (decisions D-*, preferences P-*, assumptions A-*, open questions Q-*)
+  - AGENTS.md (instruction precedence, memory protocol, agent roles)
+  - ARCHITECTURE.md and the ADRs referenced by affected decisions
+  Instruction precedence: current owner request > accepted OpenSpec specs > accepted ADRs/registry
+  > docs/standards > scoped AGENTS.md > root AGENTS.md/defaults. If a request conflicts with a
+  higher layer, report the conflict (decision ID, quote, proposed resolution) and wait for the owner.
+  Never silently override a recorded decision.
+  Product: B2C, roles customer/support/admin, single tenant. Stage: way of working + first basic
+  architecture; no product features until the owner asks.
+
+rules:
+  proposal:
+    - List every affected decision ID (D-*, P-*) under "Impact"; write "none" if none.
+    - If the change contradicts an accepted decision, add a "Decision change" section that names the superseding ADR to be written. The owner must approve it explicitly.
+    - A new backend service must state its business domain, owned entities/data, and why it is not part of an existing domain (D-0014).
+    - A non-Go backend must justify the core dependency that requires it (D-0004 override rule).
+    - A new async event must state why losing it is acceptable (D-0015), or propose upgrading the messaging decision.
+  specs:
+    - Specs describe observable behavior only; no library or framework names.
+    - Every requirement uses SHALL/MUST and has at least one WHEN/THEN scenario.
+  design:
+    - Reference ADRs by number instead of restating them. New architectural choices need a new ADR plus a registry entry in the same change.
+  tasks:
+    - Each task group lands its own unit tests (coverage >= 80%, D-0017) and doc updates; no trailing "write tests" group.
+    - Include tasks to update docs/decisions/registry.yaml, docs/catalog/services.yaml, scoped AGENTS.md and templates when the change affects them.
+    - User-facing flows include a Playwright e2e task, or state why e2e is not possible.
+    - The last task group runs `make check` and records the result.
+
+operations:
+  apply:
+    guidance:
+      - Run `make check` before declaring a task group done; never claim a check passed without running it.
+      - When the owner states a new preference or decision mid-change, persist it (registry + affected files) before continuing.
+  archive:
+    guidance:
+      - Archive only after `make check` passes and every decision in the change is reflected in the registry.

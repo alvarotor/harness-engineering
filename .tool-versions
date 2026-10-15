@@ -1,0 +1,6 @@
+golang 1.26.0
+nodejs 24.15.0
+opentofu 1.13.1
+buf 1.74.0
+golangci-lint 2.14.0
+npm:@fission-ai/openspec 1.14.1
