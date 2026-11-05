@@ -28,4 +28,5 @@ Status values: `proposed` → `accepted` → (`superseded` | `deprecated`).
 | [0015](0015-async-redis-pubsub.md) | Asynchronous messaging via Redis pub/sub | accepted | user |
 | [0016](0016-infrastructure-opentofu.md) | Infrastructure as code with OpenTofu, provider-neutral, AWS default | accepted | user |
 | [0017](0017-testing-strategy.md) | Testing: unit tests for all code, ≥ 80 % coverage, e2e when possible | accepted | user+default |
-| [0018](0018-dev-bootstrap-mise.md) | Developer machine bootstrap with mise | accepted | user |
+| [0018](0018-dev-bootstrap-mise.md) | Developer machine bootstrap with mise | superseded | user |
+| [0019](0019-agent-approval-before-bootstrap.md) | Owner approval before agent bootstrap | accepted | user |

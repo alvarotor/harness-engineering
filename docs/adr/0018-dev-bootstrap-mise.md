@@ -1,8 +1,9 @@
 # 0018 Developer machine bootstrap with mise
 
-- Status: accepted
+- Status: superseded
 - Date: 2026-10-15
 - Source: user
+- Superseded by: 0019
 
 ## Context
 A fresh macOS/Linux machine has none of the pinned tools, and `make` may be missing. Every project

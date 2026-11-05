@@ -8,9 +8,11 @@ features unless the owner asks.
 
 ## 1. Start of every session
 
-0. **Tools check:** run `make doctor` (or `make-proj doctor`). If `make` is not found or `doctor` fails, run
-   `./scripts/bootstrap.sh` and re-check (D-0018). If it reports steps that need sudo or Docker, stop and give the
-   owner the exact commands it printed (P-0007).
+0. **Tools check:** run `make doctor` (or `make-proj doctor`). If `make` is not found or `doctor` fails, explain
+   that you propose to run `./scripts/bootstrap.sh` and summarize the actions indicated by the failure and the
+   script. Stop and wait for the owner's explicit approval before running it (D-0019). A direct owner request to
+   run the script is approval for that run. If the script reports a separate step requiring sudo or asks the owner
+   to start Docker, stop and give the owner the exact action or command it printed (P-0007).
 
 Then read, in this order:
 1. [`docs/decisions/registry.yaml`](docs/decisions/registry.yaml): decisions, preferences, assumptions and open questions.
@@ -98,6 +100,7 @@ Defined in [`docs/agents/`](docs/agents/README.md): **orchestrator** (the entry 
 
 Owner approval is always required for:
 - accepting or superseding decisions
+- running `./scripts/bootstrap.sh` after a failed doctor check (D-0019)
 - adding new infrastructure components or external services
 - security-sensitive changes
 - production deploys
@@ -130,7 +133,7 @@ make spec-validate   # openspec strict validation
 make doctor          # compare installed tool versions with .tool-versions
 ```
 
-Tools are pinned in `.tool-versions` and installed by `./scripts/bootstrap.sh` (D-0018). Prerequisites (macOS/Linux only) are in [`CONTRIBUTING.md`](CONTRIBUTING.md#prerequisites).
+Tools are pinned in `.tool-versions` and installed by `./scripts/bootstrap.sh` (D-0019). Prerequisites (macOS/Linux only) are in [`CONTRIBUTING.md`](CONTRIBUTING.md#prerequisites).
 If `make` is not found but `make-proj` is, use `make-proj <target>`. It is the same GNU Make, installed without sudo.
 Never install a user-space copy under the name `make`.
 If installing a tool needs `sudo`, give the owner the commands (P-0007).

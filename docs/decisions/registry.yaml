@@ -155,10 +155,19 @@ decisions:
 
   - id: D-0018
     title: scripts/bootstrap.sh is the first step on a new machine and the fix when make doctor fails; mise installs .tool-versions; make or make-proj ensured; Docker checked only
-    status: accepted
+    status: superseded
     source: user
     adr: docs/adr/0018-dev-bootstrap-mise.md
     enforced_by: [scripts/bootstrap.sh, Makefile, AGENTS.md, CONTRIBUTING.md, tools/harness]
+    superseded_by: D-0019
+
+  - id: D-0019
+    title: Agents propose bootstrap after a failed doctor check and wait for owner approval before running it
+    status: accepted
+    source: user
+    adr: docs/adr/0019-agent-approval-before-bootstrap.md
+    rationale: The owner wants to review bootstrap's possible machine changes before an agent executes it.
+    enforced_by: [AGENTS.md, docs/agents/orchestrator.md, CONTRIBUTING.md, docs/standards/agent-tooling.md]
 
 preferences:
   - id: P-0001
@@ -187,6 +196,9 @@ preferences:
     source: user
   - id: P-0009
     statement: Supported developer OSes are macOS and Linux only (never Windows). The OS-provided GNU-compatible make is used; no custom task runner. make is a documented prerequisite because minimal Linux images and macOS without developer tools may lack it. Without sudo, a user-space copy is installed as make-proj, never as make.
+    source: user
+  - id: P-0011
+    statement: Optional personal AI tooling (codebase graph, MCP servers, search, caveman) is documented in docs/standards/agent-tooling.md and is never required by checks, bootstrap or handoffs. Unpinned tools must be pinned before sharing. Project tools stay in .tool-versions and package.json.
     source: user
   - id: P-0010
     statement: Every role documents its own work in the same step, following the documentation map in docs/agents/README.md. The documentation role only verifies this against the change and fixes descriptive gaps, reporting who missed them.
@@ -256,3 +268,9 @@ changelog:
   - date: 2026-10-15
     changes:
       - "Added scripts/bootstrap.sh with mise (D-0018, owner). Ran on this machine: mise 2026.10.11 and all 6 pinned tools installed under ~/.local/share/mise; make doctor ok."
+  - date: 2026-10-16
+    changes:
+      - "Optional personal AI tooling documented in docs/standards/agent-tooling.md, never required by checks (P-0011)."
+  - date: 2026-11-05
+    changes:
+      - "D-0019 supersedes D-0018 for agent behavior: propose bootstrap after doctor failure, summarize its actions, and wait for owner approval before running it."

@@ -13,7 +13,7 @@ git clone <repo> && cd <repo>
 make check                  # or `make-proj check` if bootstrap installed the no-sudo copy
 ```
 
-What [`scripts/bootstrap.sh`](scripts/bootstrap.sh) does (D-0018):
+What [`scripts/bootstrap.sh`](scripts/bootstrap.sh) does (D-0019):
 
 | Step | How |
 |---|---|
@@ -23,7 +23,10 @@ What [`scripts/bootstrap.sh`](scripts/bootstrap.sh) does (D-0018):
 | Docker + Compose v2 | **checked only**, never installed (needs admin rights): Docker Desktop on macOS, Docker Engine on Linux |
 | verify | `make doctor` |
 
-Whenever `make doctor` fails (e.g. after someone bumps `.tool-versions`), run `./scripts/bootstrap.sh` again.
+For a human-maintained developer machine, whenever `make doctor` fails (e.g. after someone bumps
+`.tool-versions`), run `./scripts/bootstrap.sh` again. Agents must follow the approval gate in
+[`AGENTS.md`](AGENTS.md#1-start-of-every-session): explain the proposed bootstrap actions and wait for owner
+approval before running it.
 The `Makefile` uses mise's pinned tools even if mise is not activated in your shell. To also get them in
 your terminal, add `eval "$(mise activate zsh)"` (or `bash`) to your shell rc.
 
