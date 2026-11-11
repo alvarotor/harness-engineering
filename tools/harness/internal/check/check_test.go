@@ -86,7 +86,7 @@ func validRepo(t *testing.T) string {
 	files := map[string]string{
 		"AGENTS.md":       "See [arch](ARCHITECTURE.md#1-system-context), [web](https://example.com).\n```\n[ignored](missing.md)\n```\n",
 		"ARCHITECTURE.md": "services/core services/auth apps/web\n",
-		"CONTRIBUTING.md": "x", "Makefile": "x", ".tool-versions": "x",
+		"CONTRIBUTING.md": "x", "Makefile": "x",
 		registryPath:                           fixtureRegistry,
 		catalogPath:                            fixtureCatalog,
 		"docs/adr/0001-go.md":                  "# 0001\n\n- Status: accepted\n",
@@ -167,6 +167,17 @@ func TestValidRepoHasNoViolations(t *testing.T) {
 	}
 }
 
+func TestSupersededPreference(t *testing.T) {
+	root := validRepo(t)
+	replace(t, root, registryPath,
+		"  - id: P-0001\n    statement: keep it simple\n    source: user\n",
+		"  - id: P-0001\n    statement: keep it simple\n    source: user\n    status: superseded\n    superseded_by: P-0002\n  - id: P-0002\n    statement: revised preference\n    source: user\n")
+	_, violations := Run(root)
+	if len(violations) != 0 {
+		t.Fatalf("superseded preference should be valid, got %v", violations)
+	}
+}
+
 func TestEachRuleDetectsItsViolation(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -188,6 +199,9 @@ func TestEachRuleDetectsItsViolation(t *testing.T) {
 		{"bad preference source", "R-REG-001", func(t *testing.T, r string) {
 			replace(t, r, registryPath, "source: user\nassumptions", "source: x\nassumptions")
 		}},
+		{"bad preference status", "R-REG-001", func(t *testing.T, r string) {
+			replace(t, r, registryPath, "source: user\nassumptions", "source: user\n    status: maybe\nassumptions")
+		}},
 		{"ADR missing", "R-REG-002", func(t *testing.T, r string) { remove(t, r, "docs/adr/0002-ts.md") }},
 		{"ADR status mismatch", "R-REG-002", func(t *testing.T, r string) {
 			replace(t, r, "docs/adr/0001-go.md", "accepted", "proposed")
@@ -204,6 +218,21 @@ func TestEachRuleDetectsItsViolation(t *testing.T) {
 		}},
 		{"superseded_by on accepted", "R-REG-005", func(t *testing.T, r string) {
 			replace(t, r, registryPath, "title: TS apps", "title: TS apps\n    superseded_by: D-0001")
+		}},
+		{"superseded preference without replacement", "R-REG-005", func(t *testing.T, r string) {
+			replace(t, r, registryPath, "source: user\nassumptions", "source: user\n    status: superseded\nassumptions")
+		}},
+		{"superseded preference with unknown replacement", "R-REG-005", func(t *testing.T, r string) {
+			replace(t, r, registryPath, "source: user\nassumptions", "source: user\n    status: superseded\n    superseded_by: P-9999\nassumptions")
+		}},
+		{"preference cannot supersede a decision", "R-REG-005", func(t *testing.T, r string) {
+			replace(t, r, registryPath, "source: user\nassumptions", "source: user\n    status: superseded\n    superseded_by: D-0001\nassumptions")
+		}},
+		{"decision cannot be superseded by a preference", "R-REG-005", func(t *testing.T, r string) {
+			replace(t, r, registryPath, "title: TS apps\n    status: accepted\n    source: default", "title: TS apps\n    status: superseded\n    source: default\n    superseded_by: P-0001")
+		}},
+		{"superseded_by on accepted preference", "R-REG-005", func(t *testing.T, r string) {
+			replace(t, r, registryPath, "source: user\nassumptions", "source: user\n    status: accepted\n    superseded_by: P-0002\nassumptions")
 		}},
 		{"catalog invalid yaml", "R-CAT-001", func(t *testing.T, r string) { write(t, r, catalogPath, "deployables: {") }},
 		{"empty owner", "R-CAT-001", func(t *testing.T, r string) { replace(t, r, catalogPath, "owner: team", `owner: ""`) }},

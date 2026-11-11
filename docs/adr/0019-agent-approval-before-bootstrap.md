@@ -1,6 +1,6 @@
 # 0019 Owner approval before agent bootstrap
 
-- Status: accepted
+- Status: superseded
 - Date: 2026-11-05
 - Source: user
 - Supersedes: 0018

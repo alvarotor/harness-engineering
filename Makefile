@@ -1,16 +1,13 @@
 # Single entry point for developers and CI (D-0002, D-0013).
-# Must run on the OS make of macOS (GNU Make 3.81) and Linux (P-0009): no .SHELLFLAGS, .ONESHELL or other 3.82+ features.
+# Must run on macOS, Linux and Termux Make; avoid GNU Make 3.82+ features for macOS compatibility (P-0012).
 SHELL := bash
 .DEFAULT_GOAL := help
 
 COVERAGE_MIN := 80
 HARNESS_DIR := tools/harness
 
-# Use the tool versions pinned in .tool-versions (installed by scripts/bootstrap.sh), even if mise is not activated in the shell.
-MISE_SHIMS := $(or $(MISE_DATA_DIR),$(HOME)/.local/share/mise)/shims
-ifneq ($(wildcard $(MISE_SHIMS)),)
-export PATH := $(MISE_SHIMS):$(PATH)
-endif
+# Never let a Go command download a toolchain implicitly; developers install Go themselves.
+export GOTOOLCHAIN := local
 
 .PHONY: help check harness harness-test harness-lint spec-validate doctor
 
@@ -35,22 +32,12 @@ harness-lint: ## golangci-lint on the harness
 spec-validate: ## OpenSpec strict validation of all changes and specs
 	@openspec validate --all --strict --no-interactive
 
-doctor: ## Check tool versions against .tool-versions and Docker; points to scripts/bootstrap.sh on failure
-	@fail=0; while read -r tool want; do \
-	  [[ -z "$$tool" || "$$tool" == \#* ]] && continue; \
-	  case "$$tool" in \
-	    golang) have=$$(go env GOVERSION 2>/dev/null | sed 's/^go//') ;; \
-	    nodejs) have=$$(node --version 2>/dev/null | sed 's/^v//') ;; \
-	    opentofu) have=$$(tofu version 2>/dev/null | awk 'NR==1 {sub("v","",$$2); print $$2}') ;; \
-	    buf) have=$$(buf --version 2>/dev/null) ;; \
-	    golangci-lint) have=$$(golangci-lint version 2>/dev/null | awk '{print $$4}') ;; \
-	    npm:@fission-ai/openspec) have=$$(openspec --version 2>/dev/null) ;; \
-	    *) echo "?  $$tool: unknown to doctor"; continue ;; \
-	  esac; \
-	  if [[ "$$have" == "$$want" ]]; then echo "ok $$tool $$have"; \
-	  else echo "!! $$tool: want $$want, have $${have:-missing}"; fail=1; fi; \
-	done < .tool-versions; \
-	if docker compose version >/dev/null 2>&1; then echo "ok docker compose"; \
-	else echo "!! docker compose: missing or not running"; fail=1; fi; \
-	if [[ $$fail == 1 ]]; then echo "fix: run ./scripts/bootstrap.sh (see CONTRIBUTING.md#prerequisites)"; fi; \
+doctor: ## Check required developer tools are present; points to setup guidance on failure
+	@fail=0; for tool in go node tofu buf golangci-lint openspec; do \
+	  if command -v "$$tool" >/dev/null 2>&1; then echo "ok $$tool"; \
+	  else echo "!! $$tool: missing"; fail=1; fi; \
+	done; \
+	if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then echo "ok docker compose"; \
+	else echo "!! docker compose: missing"; fail=1; fi; \
+	if [[ $$fail == 1 ]]; then echo "fix: see CONTRIBUTING.md#prerequisites; ./scripts/bootstrap.sh only reports missing tools"; fi; \
 	exit $$fail

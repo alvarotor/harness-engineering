@@ -8,7 +8,7 @@ Layer 4 in the precedence model. Decisions referenced by ID win over this file.
 - Build-time libraries live in `packages/go/<name>` and `packages/ts/<name>`. A deployable never imports another deployable (D-0002).
 - Every command developers or CI run is a `make` target. Per-deployable Makefiles expose the same target names
   (`lint`, `test`, `build`, `image`).
-- Tool versions are pinned in `.tool-versions`. Dependencies are pinned by lockfile (`go.sum`, `pnpm-lock.yaml`). Images are pinned by digest.
+- Host developer tools are checked for presence without version pins or a version manager (D-0021). Application dependencies are pinned by lockfile (`go.sum`, `pnpm-lock.yaml`). Images are pinned by digest.
 
 ## Go (default backend, D-0004)
 - Layout and dependency rule: [ADR-0004](../adr/0004-go-hexagonal-lite-backends.md).

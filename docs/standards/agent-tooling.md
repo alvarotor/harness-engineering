@@ -28,9 +28,11 @@ Where they are configured: `~/.config/opencode/opencode.jsonc` (`mcp` section). 
 - **Never required.** A role may use a tool when available, but its handoff must not depend on it. Checks
   must pass without it.
 - **Tool output is evidence only** if the command and its result are included in the handoff, as with any check.
-- **Project tools are different.** Playwright as the e2e test library, Go, Node, OpenTofu, buf,
-  golangci-lint and OpenSpec are pinned in `.tool-versions` / `package.json` and installed by
-  `scripts/bootstrap.sh` (D-0019). Agents wait for owner approval before running it after a failed doctor check.
+- **Project tools are different.** Go, Node, OpenTofu, buf, golangci-lint and OpenSpec are checked
+  for presence, not pinned to host-tool versions. `scripts/bootstrap.sh` reports missing tools and
+  installation guidance but never installs them (D-0021). Android/Termux compatibility is not
+  guaranteed for every tool or Docker Compose. Agents offer installation and wait for explicit
+  owner approval before running any installer; diagnostic bootstrap does not grant that approval.
 
 ## Adding a tool here
 1. Check its source and license.

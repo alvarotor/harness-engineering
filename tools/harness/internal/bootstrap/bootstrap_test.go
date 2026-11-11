@@ -9,10 +9,13 @@ import (
 	"testing"
 )
 
-var script, _ = filepath.Abs("../../../../scripts/bootstrap.sh")
+var (
+	script, _   = filepath.Abs("../../../../scripts/bootstrap.sh")
+	makefile, _ = filepath.Abs("../../../../Makefile")
+)
 
-// Real utilities the script may use; everything else is faked or absent.
-var realTools = []string{"dirname", "mkdir", "mktemp", "rm", "cut", "tar", "install", "sha256sum", "cat"}
+// Real utilities needed by the shell script and Makefile recipes.
+var realTools = []string{"bash"}
 
 type env struct {
 	t     *testing.T
@@ -40,7 +43,7 @@ func newEnv(t *testing.T, osName string) *env {
 			t.Fatal(err)
 		}
 	}
-	e.fake("uname", `case "$1" in -s) echo `+osName+`;; -m) echo x86_64;; esac`)
+	e.fake("uname", `case "$1" in -s) echo `+osName+`;; esac`)
 	return e
 }
 
@@ -53,16 +56,42 @@ func (e *env) fake(name, body string) {
 	}
 }
 
-// healthy installs fakes for a machine where everything is present and working.
-func (e *env) healthy() {
-	e.fake("make", "")
-	e.fake("mise", "")
-	e.fake("docker", "")
+func (e *env) healthy(includeMake bool) {
+	e.t.Helper()
+	if includeMake {
+		e.fake("make", "")
+	}
+	for _, tool := range []string{"go", "node", "tofu", "buf", "golangci-lint", "openspec", "docker"} {
+		e.fake(tool, "")
+	}
+}
+
+func (e *env) fakeInstallers() {
+	e.t.Helper()
+	for _, tool := range []string{"pkg", "apt-get", "dnf", "sudo", "curl", "mise", "tar", "install"} {
+		e.fake(tool, "")
+	}
 }
 
 func (e *env) run() (string, int) {
 	e.t.Helper()
 	cmd := exec.Command("/bin/sh", script) //nolint:gosec // fixed script path under test
+	cmd.Env = append([]string{"PATH=" + e.bin, "HOME=" + e.home, "FAKE_LOG=" + e.log}, e.extra...)
+	out, _ := cmd.CombinedOutput()
+	code := 0
+	if cmd.ProcessState != nil {
+		code = cmd.ProcessState.ExitCode()
+	}
+	return string(out), code
+}
+
+func (e *env) runDoctor() (string, int) {
+	e.t.Helper()
+	makePath, err := exec.LookPath("make")
+	if err != nil {
+		e.t.Skipf("make not available: %v", err)
+	}
+	cmd := exec.Command(makePath, "-f", makefile, "doctor") //nolint:gosec // fixed Makefile path
 	cmd.Env = append([]string{"PATH=" + e.bin, "HOME=" + e.home, "FAKE_LOG=" + e.log}, e.extra...)
 	out, _ := cmd.CombinedOutput()
 	code := 0
@@ -91,113 +120,81 @@ func expect(t *testing.T, out string, code, wantCode int, wants ...string) {
 
 func TestHealthyMachine(t *testing.T) {
 	e := newEnv(t, "Linux")
-	e.healthy()
-	e.extra = []string{"MISE_SHELL=bash"}
+	e.healthy(true)
 	out, code := e.run()
-	expect(t, out, code, 0, "ready. Next: make check")
-	for _, want := range []string{"mise install", "mise exec -- make doctor", "docker compose version"} {
-		if !strings.Contains(e.calls(), want) {
-			t.Errorf("expected call %q, got:\n%s", want, e.calls())
-		}
-	}
-	if strings.Contains(out, "tip:") {
-		t.Error("activation tip shown although mise is active")
+	expect(t, out, code, 0, "all required tools are present", "Next: make check")
+	if strings.Contains(e.calls(), "mise") || strings.Contains(e.calls(), "install") || strings.Contains(e.calls(), "curl") {
+		t.Errorf("diagnostics must not invoke installers or downloaders:\n%s", e.calls())
 	}
 }
 
 func TestUnsupportedOS(t *testing.T) {
 	e := newEnv(t, "FreeBSD")
 	out, code := e.run()
-	expect(t, out, code, 1, "macOS and Linux only")
+	expect(t, out, code, 1, "supported hosts are macOS, Linux, and Termux")
 }
 
-func TestMacWithoutMake(t *testing.T) {
-	e := newEnv(t, "Darwin")
-	e.fake("mise", "")
-	e.fake("docker", "")
-	out, code := e.run()
-	expect(t, out, code, 1, "xcode-select --install", "not ready")
-	if !strings.Contains(e.calls(), "mise install") {
-		t.Error("should keep going and install tools even when make is missing")
+func TestMissingMakePrintsHostGuidanceWithoutInstalling(t *testing.T) {
+	cases := []struct {
+		name  string
+		os    string
+		extra []string
+		want  string
+	}{
+		{"macOS", "Darwin", nil, "xcode-select --install"},
+		{"Linux", "Linux", nil, "sudo apt-get install -y make"},
+		{"Termux by PREFIX", "Linux", []string{"PREFIX=/data/data/com.termux/files/usr"}, "pkg install make"},
+		{"Termux by version", "Linux", []string{"TERMUX_VERSION=0.118.1"}, "pkg install make"},
 	}
-	if strings.Contains(e.calls(), "doctor") {
-		t.Error("doctor must not run without make")
-	}
-}
-
-func TestUsesMakeProjFallback(t *testing.T) {
-	e := newEnv(t, "Linux")
-	e.fake("make-proj", "")
-	e.fake("mise", "")
-	e.fake("docker", "")
-	out, code := e.run()
-	expect(t, out, code, 0, "Next: make-proj check")
-	if !strings.Contains(e.calls(), "mise exec -- make-proj doctor") {
-		t.Errorf("doctor should run through make-proj:\n%s", e.calls())
-	}
-}
-
-func TestLinuxWithoutMakeOrSudoPrintsCommands(t *testing.T) {
-	e := newEnv(t, "Linux")
-	e.fake("mise", "")
-	e.fake("docker", "")
-	out, code := e.run()
-	expect(t, out, code, 1, "sudo apt-get install -y make")
-}
-
-func TestDockerProblems(t *testing.T) {
-	cases := map[string]struct{ docker, want string }{
-		"missing":     {"", "Docker is missing"},
-		"not running": {`[ "$1" = info ] && exit 1; exit 0`, "not running"},
-		"no compose":  {`[ "$1" = compose ] && exit 1; exit 0`, "Compose v2 is missing"},
-	}
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			e := newEnv(t, "Linux")
-			e.fake("make", "")
-			e.fake("mise", "")
-			if tc.docker != "" {
-				e.fake("docker", tc.docker)
-			}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newEnv(t, tc.os)
+			e.healthy(false)
+			e.fakeInstallers()
+			e.extra = tc.extra
 			out, code := e.run()
-			expect(t, out, code, 1, tc.want)
+			expect(t, out, code, 1, "missing make", tc.want)
+			if strings.Contains(e.calls(), "pkg ") || strings.Contains(e.calls(), "apt-get") || strings.Contains(e.calls(), "dnf") || strings.Contains(e.calls(), "sudo") || strings.Contains(e.calls(), "curl") {
+				t.Errorf("bootstrap must only print guidance, got installer calls:\n%s", e.calls())
+			}
 		})
 	}
 }
 
-func TestDoctorFailureIsReported(t *testing.T) {
+func TestMissingToolsAreReported(t *testing.T) {
 	e := newEnv(t, "Linux")
-	e.healthy()
-	e.fake("mise", `case "$*" in *doctor*) exit 1;; esac`)
+	e.fakeInstallers()
 	out, code := e.run()
-	expect(t, out, code, 1, "'make doctor' reported mismatches")
-}
-
-func TestMiseInstallFailureIsReported(t *testing.T) {
-	e := newEnv(t, "Linux")
-	e.healthy()
-	e.fake("mise", `[ "$1" = install ] && exit 1; exit 0`)
-	out, code := e.run()
-	expect(t, out, code, 1, "'mise install' failed")
-}
-
-func TestMiseChecksumMismatchIsNotInstalled(t *testing.T) {
-	e := newEnv(t, "Linux")
-	e.fake("make", "")
-	e.fake("docker", "")
-	e.fake("curl", `while [ $# -gt 0 ]; do [ "$1" = -o ] && echo tampered > "$2"; shift; done`)
-	out, code := e.run()
-	expect(t, out, code, 1, "checksum mismatch")
-	if _, err := os.Stat(filepath.Join(e.home, ".local/bin/mise")); err == nil {
-		t.Error("mise was installed despite a checksum mismatch")
+	expect(t, out, code, 1, "missing make", "missing go", "missing node", "missing tofu", "missing buf", "missing golangci-lint", "missing openspec", "missing docker compose")
+	if strings.Contains(e.calls(), "install") || strings.Contains(e.calls(), "curl") || strings.Contains(e.calls(), "mise") {
+		t.Errorf("bootstrap must not install or download tools:\n%s", e.calls())
 	}
 }
 
-func TestMiseDownloadFailureIsReported(t *testing.T) {
+func TestTermuxWithoutDockerComposeReportsPrerequisite(t *testing.T) {
 	e := newEnv(t, "Linux")
-	e.fake("make", "")
-	e.fake("docker", "")
-	e.fake("curl", "exit 22")
+	e.extra = append(e.extra, "TERMUX_VERSION=0.118.1")
+	e.healthy(true)
+	e.fake("docker", `[ "$1" = compose ] && exit 1; exit 0`)
 	out, code := e.run()
-	expect(t, out, code, 1, "could not download")
+	expect(t, out, code, 1, "missing docker compose", "Docker Compose availability is not guaranteed in Termux")
+	if strings.Contains(out, "Docker Engine") || strings.Contains(out, "install Docker") {
+		t.Errorf("Termux must not receive generic Linux Docker installation guidance:\n%s", out)
+	}
+}
+
+func TestDoctorChecksPresenceWithoutRunningToolVersions(t *testing.T) {
+	e := newEnv(t, "Linux")
+	e.healthy(true)
+	out, code := e.runDoctor()
+	expect(t, out, code, 0, "ok go", "ok node", "ok tofu", "ok buf", "ok golangci-lint", "ok openspec", "ok docker compose")
+	if strings.Contains(e.calls(), "go ") || strings.Contains(e.calls(), "node ") || strings.Contains(e.calls(), "tofu ") || strings.Contains(e.calls(), "buf ") || strings.Contains(e.calls(), "golangci-lint ") || strings.Contains(e.calls(), "openspec ") {
+		t.Errorf("doctor should check command presence without invoking version commands:\n%s", e.calls())
+	}
+}
+
+func TestDoctorReportsMissingTools(t *testing.T) {
+	e := newEnv(t, "Linux")
+	out, code := e.runDoctor()
+	expect(t, out, code, 2, "go: missing", "node: missing", "tofu: missing", "buf: missing", "golangci-lint: missing", "openspec: missing", "docker compose: missing")
 }

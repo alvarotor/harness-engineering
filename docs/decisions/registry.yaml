@@ -163,11 +163,26 @@ decisions:
 
   - id: D-0019
     title: Agents propose bootstrap after a failed doctor check and wait for owner approval before running it
-    status: accepted
+    status: superseded
     source: user
     adr: docs/adr/0019-agent-approval-before-bootstrap.md
-    rationale: The owner wants to review bootstrap's possible machine changes before an agent executes it.
     enforced_by: [AGENTS.md, docs/agents/orchestrator.md, CONTRIBUTING.md, docs/standards/agent-tooling.md]
+    superseded_by: D-0020
+
+  - id: D-0020
+    title: Developer bootstrap supports Termux without a private make-proj fallback and preserves the agent approval gate
+    status: superseded
+    source: user
+    adr: docs/adr/0020-developer-bootstrap-termux.md
+    enforced_by: [AGENTS.md, docs/agents/orchestrator.md, docs/standards/agent-tooling.md, docs/adr/README.md, scripts/bootstrap.sh, Makefile, docs/standards/validation.md, tools/harness/internal/bootstrap, CONTRIBUTING.md]
+    superseded_by: D-0021
+
+  - id: D-0021
+    title: Developer tools are checked for presence and never installed automatically
+    status: accepted
+    source: user
+    adr: docs/adr/0021-developer-tool-presence-checks.md
+    enforced_by: [AGENTS.md, docs/agents/orchestrator.md, docs/agents/devops.md, docs/standards/agent-tooling.md, docs/standards/engineering.md, docs/standards/validation.md, docs/adr/README.md, scripts/bootstrap.sh, Makefile, CONTRIBUTING.md, tools/harness]
 
 preferences:
   - id: P-0001
@@ -189,7 +204,7 @@ preferences:
     statement: Language/framework choices are defaults; a specific library choice (e.g. Better Auth) may justify an override, recorded as an exception.
     source: user
   - id: P-0007
-    statement: Agents may install developer tools locally (user space). If an install needs privileges (sudo), give the owner the exact commands instead.
+    statement: Agents may install developer tools locally (user space) only after explicit owner approval. If an install needs privileges (sudo), give the owner the exact commands instead.
     source: user
   - id: P-0008
     statement: "Agent roles are: orchestrator (sequences work, never edits), architect, planner (also archives), implementer, test-engineer, security-reviewer (only for security-sensitive changes), reviewer, documentation, devops."
@@ -197,8 +212,18 @@ preferences:
   - id: P-0009
     statement: Supported developer OSes are macOS and Linux only (never Windows). The OS-provided GNU-compatible make is used; no custom task runner. make is a documented prerequisite because minimal Linux images and macOS without developer tools may lack it. Without sudo, a user-space copy is installed as make-proj, never as make.
     source: user
+    status: superseded
+    superseded_by: P-0012
   - id: P-0011
     statement: Optional personal AI tooling (codebase graph, MCP servers, search, caveman) is documented in docs/standards/agent-tooling.md and is never required by checks, bootstrap or handoffs. Unpinned tools must be pinned before sharing. Project tools stay in .tool-versions and package.json.
+    source: user
+    status: superseded
+    superseded_by: P-0013
+  - id: P-0012
+    statement: Supported developer environments are macOS, Linux and Termux for GNU Make and repository commands whose host dependencies are available. Use each environment's package manager or developer tools to obtain GNU Make; do not install a private make-proj fallback. Android support for Docker Compose and every pinned tool is not assumed.
+    source: user
+  - id: P-0013
+    statement: Optional personal AI tooling remains documented and is never required by checks, bootstrap or handoffs; pin it before sharing. Host developer tools are checked for presence only, without version pins or mise. Setup reports missing tools and offers installation, but agents install only after explicit owner approval; diagnostic checks and bootstrap never install tools.
     source: user
   - id: P-0010
     statement: Every role documents its own work in the same step, following the documentation map in docs/agents/README.md. The documentation role only verifies this against the change and fixes descriptive gaps, reporting who missed them.
@@ -274,3 +299,7 @@ changelog:
   - date: 2026-11-05
     changes:
       - "D-0019 supersedes D-0018 for agent behavior: propose bootstrap after doctor failure, summarize its actions, and wait for owner approval before running it."
+  - date: 2026-11-09
+    changes:
+      - "D-0020 supersedes D-0019: supports Termux with package-manager GNU Make and no make-proj fallback, while preserving the agent bootstrap approval gate; P-0012 supersedes P-0009."
+      - "D-0021 supersedes D-0020: developer tools are presence-checked without mise, host-tool version pins, or automatic installation; P-0013 supersedes P-0011 and P-0007 now requires explicit approval for local installation."

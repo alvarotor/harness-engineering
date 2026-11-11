@@ -11,7 +11,7 @@ import (
 )
 
 var requiredFiles = []string{
-	"AGENTS.md", "ARCHITECTURE.md", "CONTRIBUTING.md", "Makefile", ".tool-versions",
+	"AGENTS.md", "ARCHITECTURE.md", "CONTRIBUTING.md", "Makefile",
 	registryPath, catalogPath, "docs/adr/README.md", "docs/agents/README.md",
 	"docs/standards/engineering.md", "docs/standards/security.md", "docs/standards/testing.md",
 	"docs/standards/definition-of-done.md", validationPath, "openspec/config.yaml", bootstrapPath,

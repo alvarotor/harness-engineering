@@ -19,7 +19,7 @@ Run work in the right order through the right roles, and enforce the gates. It c
   8. **owner approval** for gated items
   9. planner archives
 - Decide whether security review is triggered, using the paths and topics in [`security.md`](../standards/security.md#security-review-triggers).
-- At session start, if the doctor check fails, summarize the proposed bootstrap actions and wait for owner approval before running the script, as required by D-0019.
+- At session start, if `make` is missing or `make doctor` fails, list the missing tools and give installation guidance. Offer to install user-space tools and wait for explicit owner approval before running any installer (D-0021). `scripts/bootstrap.sh` is diagnostic-only; running it does not authorize installation. Use `make` directly; do not use a `make-proj` fallback.
 - Reject a handoff that lacks evidence (commands run and their real output). Send it back to the same role.
 - Route findings back: test failures → implementer/devops; review or security findings → the role that owns the file.
 - Keep track of where the change stands (`openspec status --change <name>`) and report progress to the owner.

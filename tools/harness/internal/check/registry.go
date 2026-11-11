@@ -8,13 +8,13 @@ import (
 
 // Registry mirrors docs/decisions/registry.yaml.
 type Registry struct {
-	Version           int         `yaml:"version"`
-	Decisions         []Decision  `yaml:"decisions"`
-	Preferences       []Entry     `yaml:"preferences"`
-	Assumptions       []Entry     `yaml:"assumptions"`
-	OpenQuestions     []Entry     `yaml:"open_questions"`
-	ResolvedQuestions []Entry     `yaml:"resolved_questions"`
-	Changelog         []Changelog `yaml:"changelog"`
+	Version           int          `yaml:"version"`
+	Decisions         []Decision   `yaml:"decisions"`
+	Preferences       []Preference `yaml:"preferences"`
+	Assumptions       []Entry      `yaml:"assumptions"`
+	OpenQuestions     []Entry      `yaml:"open_questions"`
+	ResolvedQuestions []Entry      `yaml:"resolved_questions"`
+	Changelog         []Changelog  `yaml:"changelog"`
 }
 
 // Decision is a D-NNNN entry.
@@ -39,7 +39,16 @@ type Exception struct {
 	Reason   string `yaml:"reason"`
 }
 
-// Entry is a preference, assumption or question.
+// Preference is a P-NNNN entry. Status and superseded_by are optional until a preference changes.
+type Preference struct {
+	ID           string `yaml:"id"`
+	Statement    string `yaml:"statement"`
+	Source       string `yaml:"source"`
+	Status       string `yaml:"status"`
+	SupersededBy string `yaml:"superseded_by"`
+}
+
+// Entry is an assumption or question.
 type Entry struct {
 	ID         string `yaml:"id"`
 	Statement  string `yaml:"statement"`
@@ -99,6 +108,9 @@ func checkRegistrySchema(r *Repo) []Violation {
 		checkID(p.ID, regexp.MustCompile(`^P-\d{4}$`))
 		if !validSource[p.Source] {
 			bad(p.ID, fmt.Sprintf("invalid source %q, want user or default", p.Source))
+		}
+		if p.Status != "" && !validStatus[p.Status] {
+			bad(p.ID, fmt.Sprintf("invalid status %q", p.Status))
 		}
 	}
 	for _, a := range r.Registry.Assumptions {
@@ -190,18 +202,30 @@ func checkSupersession(r *Repo) []Violation {
 	if r.Registry == nil {
 		return nil
 	}
-	ids := map[string]bool{}
+	decisionIDs := map[string]bool{}
 	for _, d := range r.Registry.Decisions {
-		ids[d.ID] = true
+		decisionIDs[d.ID] = true
+	}
+	preferenceIDs := map[string]bool{}
+	for _, p := range r.Registry.Preferences {
+		preferenceIDs[p.ID] = true
 	}
 	var out []Violation
-	for _, d := range r.Registry.Decisions {
+	check := func(id, status, supersededBy, targetType string, targetIDs map[string]bool) {
 		switch {
-		case d.Status == "superseded" && !ids[d.SupersededBy]:
-			out = append(out, Violation{"R-REG-005", registryPath, fmt.Sprintf("%s is superseded but superseded_by %q is not a known decision", d.ID, d.SupersededBy), "follow 'Changing an established decision' in CONTRIBUTING.md"})
-		case d.Status != "superseded" && d.SupersededBy != "":
-			out = append(out, Violation{"R-REG-005", registryPath, d.ID + " has superseded_by but status " + d.Status, "set status: superseded or remove superseded_by"})
+		case status == "superseded" && supersededBy == "":
+			out = append(out, Violation{"R-REG-005", registryPath, id + " is superseded but has no superseded_by", "name a replacement " + targetType})
+		case status == "superseded" && !targetIDs[supersededBy]:
+			out = append(out, Violation{"R-REG-005", registryPath, fmt.Sprintf("%s is superseded but superseded_by %q is not a known %s", id, supersededBy, targetType), "follow 'Changing an established decision' in CONTRIBUTING.md"})
+		case status != "superseded" && supersededBy != "":
+			out = append(out, Violation{"R-REG-005", registryPath, id + " has superseded_by but status " + status, "set status: superseded or remove superseded_by"})
 		}
+	}
+	for _, d := range r.Registry.Decisions {
+		check(d.ID, d.Status, d.SupersededBy, "decision", decisionIDs)
+	}
+	for _, p := range r.Registry.Preferences {
+		check(p.ID, p.Status, p.SupersededBy, "preference", preferenceIDs)
 	}
 	return out
 }

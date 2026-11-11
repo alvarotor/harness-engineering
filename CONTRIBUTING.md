@@ -5,32 +5,34 @@ This repository is built by humans and AI agents following the same rules. Start
 
 ## Prerequisites
 
-Supported OSes: **macOS and Linux** (P-0009). On a new machine you only need `git` and `curl`:
+Supported developer environments: **macOS, Linux, and Termux** (P-0012). The diagnostic needs `git` and a POSIX shell; Make and the tools below are needed for repository commands:
 
 ```sh
 git clone <repo> && cd <repo>
-./scripts/bootstrap.sh      # safe to re-run; prints exactly what is still missing
-make check                  # or `make-proj check` if bootstrap installed the no-sudo copy
+./scripts/bootstrap.sh      # prints missing tools and setup guidance; does not install anything
+make doctor                 # checks required tool presence without running tool version commands
 ```
 
-What [`scripts/bootstrap.sh`](scripts/bootstrap.sh) does (D-0019):
+[`scripts/bootstrap.sh`](scripts/bootstrap.sh) is diagnostic-only: it does not install packages, download
+tools, or invoke package managers. Install tools yourself, then use `make doctor` to check their
+presence and `make check` to run repository validation.
 
 | Step | How |
 |---|---|
-| `make` | uses the OS make. If missing: `xcode-select --install` (macOS); `sudo apt-get/dnf install -y make` (Linux, interactive terminal only); without sudo, a user-space copy named **`make-proj`** (never `make`, so it can't be mistaken for the OS one) |
-| mise | pinned version, SHA-256 verified, installed into `~/.local/bin`, no sudo |
-| Go, Node, OpenTofu, buf, golangci-lint, OpenSpec | `mise install`: the exact versions in [`.tool-versions`](.tool-versions) |
-| Docker + Compose v2 | **checked only**, never installed (needs admin rights): Docker Desktop on macOS, Docker Engine on Linux |
-| verify | `make doctor` |
+| Make | macOS: `xcode-select --install`; Linux: use the distribution package manager (for example, `sudo apt-get install -y make` or `sudo dnf install -y make`); Termux: `pkg install make`. No private Make copy is installed. |
+| Go | Install through your OS package manager; Termux: `pkg install golang`. Make targets set `GOTOOLCHAIN=local`, so Go never downloads another toolchain implicitly. |
+| Node.js | Install through your OS package manager; Termux: `pkg install nodejs-lts`. |
+| OpenTofu, buf, golangci-lint, OpenSpec | Install using the tools' documented setup for your OS. These tools are not version-pinned by the repository. |
+| Docker + Compose v2 | `make doctor` checks Docker Compose presence only. Docker Desktop is for macOS; Docker Engine is for Linux. Availability in Termux is not guaranteed. |
+| verify | `make doctor` checks that `go`, `node`, `tofu`, `buf`, `golangci-lint`, `openspec`, and `docker compose` are present. It does not compare versions. |
 
-For a human-maintained developer machine, whenever `make doctor` fails (e.g. after someone bumps
-`.tool-versions`), run `./scripts/bootstrap.sh` again. Agents must follow the approval gate in
-[`AGENTS.md`](AGENTS.md#1-start-of-every-session): explain the proposed bootstrap actions and wait for owner
-approval before running it.
-The `Makefile` uses mise's pinned tools even if mise is not activated in your shell. To also get them in
-your terminal, add `eval "$(mise activate zsh)"` (or `bash`) to your shell rc.
-
-Once the OS `make` is installed, you can delete the fallback copy: `rm ~/.local/bin/make-proj`.
+For a human-maintained developer machine, whenever `make doctor` fails, run `./scripts/bootstrap.sh`
+to see missing tools and setup guidance. Agents must follow the approval gate in
+[`AGENTS.md`](AGENTS.md#1-start-of-every-session): offer to install missing user-space tools and wait for
+owner approval before running any installer. Running the diagnostic script does not approve an install.
+Termux support covers bootstrap and Make targets whose host dependencies are available. The full
+`make check` and Compose workflow require the listed tools and Docker Compose; their availability on
+Android is not guaranteed.
 
 ## Change workflow
 

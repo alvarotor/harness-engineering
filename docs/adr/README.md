@@ -29,4 +29,6 @@ Status values: `proposed` → `accepted` → (`superseded` | `deprecated`).
 | [0016](0016-infrastructure-opentofu.md) | Infrastructure as code with OpenTofu, provider-neutral, AWS default | accepted | user |
 | [0017](0017-testing-strategy.md) | Testing: unit tests for all code, ≥ 80 % coverage, e2e when possible | accepted | user+default |
 | [0018](0018-dev-bootstrap-mise.md) | Developer machine bootstrap with mise | superseded | user |
-| [0019](0019-agent-approval-before-bootstrap.md) | Owner approval before agent bootstrap | accepted | user |
+| [0019](0019-agent-approval-before-bootstrap.md) | Owner approval before agent bootstrap | superseded | user |
+| [0020](0020-developer-bootstrap-termux.md) | Developer bootstrap on macOS, Linux and Termux | superseded | user |
+| [0021](0021-developer-tool-presence-checks.md) | Developer tool presence checks without automatic installation | accepted | user |

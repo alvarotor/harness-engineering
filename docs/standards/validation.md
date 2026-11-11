@@ -5,12 +5,12 @@ Rule IDs are stable. `tools/harness` fails (R-DOC-002) if a rule exists in code 
 
 | ID | Checks | Typical fix |
 |---|---|---|
-| R-STRUCT-001 | Required repository files exist (root docs, registry, catalog, standards, agent index, OpenSpec config, `.tool-versions`, `scripts/bootstrap.sh`); the bootstrap script is executable | Restore the file / `chmod +x scripts/bootstrap.sh`. Never delete harness files without a decision change |
+| R-STRUCT-001 | Required repository files exist (root docs, registry, catalog, standards, agent index, OpenSpec config, `scripts/bootstrap.sh`); the bootstrap script is executable | Restore the file / `chmod +x scripts/bootstrap.sh`. Never delete harness files without a decision change |
 | R-REG-001 | Registry parses; IDs are well-formed (`D-NNNN`, `P-NNNN`, `A<n>`, `Q<n>`) and unique; `status`/`source` values are valid | Fix the YAML entry |
 | R-REG-002 | Each decision's ADR file exists and its `- Status:` line equals the registry status | Align ADR and registry status |
 | R-REG-003 | Every ADR file is referenced by a registry decision and listed in `docs/adr/README.md` with the same status | Add the registry entry or the index row |
 | R-REG-004 | Every `enforced_by` path exists | Create the enforcing file or move the path to `planned_enforced_by` |
-| R-REG-005 | `superseded` decisions name an existing `superseded_by`; other decisions don't have one | Follow the decision-change process in CONTRIBUTING.md |
+| R-REG-005 | `superseded` decisions/preferences name an existing replacement of the same type; other entries don't have `superseded_by` | Follow the decision-change process in CONTRIBUTING.md |
 | R-CAT-001 | Catalog schema: unique kebab-case names, `kind` app/service with a matching path, valid `status`, `owner`, `domain` (services), `personal_data` present | Fix the catalog entry |
 | R-CAT-002 | Language rule: apps use D-0006's language; services use D-0004's default unless listed in its `exceptions` with the same language | Use the default language, or add a justified exception through an approved change |
 | R-CAT-003 | Every folder in `apps/` and `services/` has a catalog entry; `active` entries exist on disk; `planned` entries don't | Add or update the catalog entry (`planned` → `active` when code lands) |
@@ -24,7 +24,7 @@ Rule IDs are stable. `tools/harness` fails (R-DOC-002) if a rule exists in code 
 | R-DOC-003 | Every catalog deployable path is mentioned in `ARCHITECTURE.md` | Update ARCHITECTURE.md §2 |
 
 ## Other checks run by `make check`
-- `make harness-test`: harness unit tests (coverage ≥ 80 %) and the `scripts/bootstrap.sh` tests (POSIX `sh` with fake tools: OS detection, missing make, make-proj fallback, Docker states, checksum mismatch, failures).
+- `make harness-test`: harness unit tests (coverage ≥ 80 %) and the `scripts/bootstrap.sh` tests (POSIX `sh` with fake tools: OS detection, missing-tool guidance, no installer calls, Termux Docker Compose reporting).
 - `make harness-lint`: golangci-lint on the harness.
 - `make spec-validate`: `openspec validate --all --strict`.
 

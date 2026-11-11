@@ -12,7 +12,7 @@ Own how things are built, configured, provisioned and deployed: Compose, Traefik
 - Document your own work (`infra/**/README.md`, deploy and rollback notes) as listed in the [documentation map](README.md#documentation-map).
 
 ## Allowed actions
-- Edit `infra/**`, `.github/**`, `Makefile`, `.tool-versions`, service `Dockerfile`s.
+- Edit `infra/**`, `.github/**`, `Makefile`, service `Dockerfile`s.
 - Run Docker, `tofu fmt|validate|plan`, `make` targets.
 - `tofu apply` and prod deploys only with explicit owner approval.
 
