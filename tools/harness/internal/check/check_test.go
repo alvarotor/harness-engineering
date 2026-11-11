@@ -178,6 +178,31 @@ func TestSupersededPreference(t *testing.T) {
 	}
 }
 
+func TestPreferenceEnforcementMetadata(t *testing.T) {
+	root := validRepo(t)
+	replace(t, root, registryPath,
+		"source: user\nassumptions",
+		"source: user\n    rationale: keep choices easy to revisit\n    enforced_by: [AGENTS.md]\n    planned_enforced_by: [future/preference-check.md]\nassumptions")
+	_, violations := Run(root)
+	if len(violations) != 0 {
+		t.Fatalf("valid preference enforcement metadata should pass, got %v", violations)
+	}
+}
+
+func TestPreferenceEnforcedByMissingPath(t *testing.T) {
+	root := validRepo(t)
+	replace(t, root, registryPath,
+		"source: user\nassumptions",
+		"source: user\n    enforced_by: [missing/preference-check.md]\nassumptions")
+	_, violations := Run(root)
+	for _, violation := range violations {
+		if violation.Rule == "R-REG-004" && violation.Path == "missing/preference-check.md" && strings.Contains(violation.Problem, "P-0001") {
+			return
+		}
+	}
+	t.Fatalf("want R-REG-004 violation for missing preference path, got %v", violations)
+}
+
 func TestEachRuleDetectsItsViolation(t *testing.T) {
 	cases := []struct {
 		name   string

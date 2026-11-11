@@ -9,7 +9,7 @@ Rule IDs are stable. `tools/harness` fails (R-DOC-002) if a rule exists in code 
 | R-REG-001 | Registry parses; IDs are well-formed (`D-NNNN`, `P-NNNN`, `A<n>`, `Q<n>`) and unique; `status`/`source` values are valid | Fix the YAML entry |
 | R-REG-002 | Each decision's ADR file exists and its `- Status:` line equals the registry status | Align ADR and registry status |
 | R-REG-003 | Every ADR file is referenced by a registry decision and listed in `docs/adr/README.md` with the same status | Add the registry entry or the index row |
-| R-REG-004 | Every `enforced_by` path exists | Create the enforcing file or move the path to `planned_enforced_by` |
+| R-REG-004 | Every decision and preference `enforced_by` path exists | Create the enforcing file or move the path to `planned_enforced_by` |
 | R-REG-005 | `superseded` decisions/preferences name an existing replacement of the same type; other entries don't have `superseded_by` | Follow the decision-change process in CONTRIBUTING.md |
 | R-CAT-001 | Catalog schema: unique kebab-case names, `kind` app/service with a matching path, valid `status`, `owner`, `domain` (services), `personal_data` present | Fix the catalog entry |
 | R-CAT-002 | Language rule: apps use D-0006's language; services use D-0004's default unless listed in its `exceptions` with the same language | Use the default language, or add a justified exception through an approved change |

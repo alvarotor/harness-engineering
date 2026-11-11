@@ -225,6 +225,12 @@ preferences:
   - id: P-0013
     statement: Optional personal AI tooling remains documented and is never required by checks, bootstrap or handoffs; pin it before sharing. Host developer tools are checked for presence only, without version pins or mise. Setup reports missing tools and offers installation, but agents install only after explicit owner approval; diagnostic checks and bootstrap never install tools.
     source: user
+  - id: P-0014
+    statement: Agents run `make doctor` only when the owner explicitly asks to check developer-tool availability.
+    source: user
+    rationale: Avoid unrelated sessions triggering tool checks and reporting setup issues the owner did not ask about.
+    enforced_by: [AGENTS.md, docs/agents/orchestrator.md]
+    planned_enforced_by: [openspec/specs/agent-roles/spec.md]
   - id: P-0010
     statement: Every role documents its own work in the same step, following the documentation map in docs/agents/README.md. The documentation role only verifies this against the change and fixes descriptive gaps, reporting who missed them.
     source: user
@@ -303,3 +309,6 @@ changelog:
     changes:
       - "D-0020 supersedes D-0019: supports Termux with package-manager GNU Make and no make-proj fallback, while preserving the agent bootstrap approval gate; P-0012 supersedes P-0009."
       - "D-0021 supersedes D-0020: developer tools are presence-checked without mise, host-tool version pins, or automatic installation; P-0013 supersedes P-0011 and P-0007 now requires explicit approval for local installation."
+  - date: 2026-11-11
+    changes:
+      - "P-0014: run `make doctor` only when the owner explicitly requests a developer-tool check."

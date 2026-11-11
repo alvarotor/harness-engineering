@@ -8,14 +8,7 @@ features unless the owner asks.
 
 ## 1. Start of every session
 
-0. **Tools check:** run `make doctor`. If `make` is missing or `doctor` fails, explain which
-   tools are missing and give the install guidance. Offer to install user-space tools, then wait
-   for explicit owner approval before running any installer (D-0021). `./scripts/bootstrap.sh`
-   is diagnostic-only; running it or requesting checks does not approve installation. If an
-   install requires sudo or asks the owner to start Docker, give the owner the exact action or
-   command (P-0007).
-
-Then read, in this order:
+Read, in this order:
 1. [`docs/decisions/registry.yaml`](docs/decisions/registry.yaml): decisions, preferences, assumptions and open questions.
 2. [`ARCHITECTURE.md`](ARCHITECTURE.md), plus the ADRs in [`docs/adr/`](docs/adr/) that are relevant to the task.
 3. Active OpenSpec changes: `openspec list`. Accepted specs: `openspec list --specs`.
@@ -134,6 +127,13 @@ make spec-validate   # openspec strict validation
 make doctor          # check for required developer tools
 ```
 
-Required developer tools are checked for presence only; they are not version-pinned or installed by the diagnostic bootstrap (D-0021). Supported environments and prerequisites are in [`CONTRIBUTING.md`](CONTRIBUTING.md#prerequisites). On Termux, install Make with `pkg install make`; support for other targets depends on their host prerequisites. Termux support does not guarantee Docker Compose or every tool on Android (P-0012). Offer to install missing user-space tools, but wait for explicit owner approval before running installers.
+Required developer tools are checked for presence only; they are not version-pinned or installed by the diagnostic bootstrap (D-0021). Supported environments and prerequisites are in [`CONTRIBUTING.md`](CONTRIBUTING.md#prerequisites). On Termux, install Make with `pkg install make`; support for other targets depends on their host prerequisites. Termux support does not guarantee Docker Compose or every tool on Android (P-0012).
 Never install a user-space copy under the name `make`.
 If installing a tool needs `sudo`, give the owner the commands (P-0007).
+
+Run `make doctor` only when the owner explicitly asks to check developer-tool availability. If
+that requested check finds missing tools, explain which tools are missing and give the install
+guidance. Offer to install user-space tools, then wait for explicit owner approval before running
+any installer (D-0021). `./scripts/bootstrap.sh` is diagnostic-only; running it or requesting checks
+does not approve installation. If an install requires sudo or asks the owner to start Docker, give
+the owner the exact action or command (P-0007).

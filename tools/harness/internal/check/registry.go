@@ -41,11 +41,14 @@ type Exception struct {
 
 // Preference is a P-NNNN entry. Status and superseded_by are optional until a preference changes.
 type Preference struct {
-	ID           string `yaml:"id"`
-	Statement    string `yaml:"statement"`
-	Source       string `yaml:"source"`
-	Status       string `yaml:"status"`
-	SupersededBy string `yaml:"superseded_by"`
+	ID                string   `yaml:"id"`
+	Statement         string   `yaml:"statement"`
+	Source            string   `yaml:"source"`
+	Rationale         string   `yaml:"rationale"`
+	EnforcedBy        []string `yaml:"enforced_by"`
+	PlannedEnforcedBy []string `yaml:"planned_enforced_by"`
+	Status            string   `yaml:"status"`
+	SupersededBy      string   `yaml:"superseded_by"`
 }
 
 // Entry is an assumption or question.
@@ -192,6 +195,13 @@ func checkEnforcedBy(r *Repo) []Violation {
 		for _, p := range d.EnforcedBy {
 			if !r.exists(p) {
 				out = append(out, Violation{"R-REG-004", p, d.ID + " claims enforcement by a path that does not exist", "create it, or move it to planned_enforced_by"})
+			}
+		}
+	}
+	for _, pref := range r.Registry.Preferences {
+		for _, p := range pref.EnforcedBy {
+			if !r.exists(p) {
+				out = append(out, Violation{"R-REG-004", p, pref.ID + " claims enforcement by a path that does not exist", "create it, or move the path to planned_enforced_by"})
 			}
 		}
 	}
