@@ -79,6 +79,17 @@ deployables:
     depends_on: [core]
 `
 
+// validDockerfile passes R-IMG-001: pinned bases, a stage reference, a non-root USER and a HEALTHCHECK.
+const validDockerfile = `FROM golang:1.26-alpine@sha256:abc AS build
+RUN go build -o /out/service ./cmd/service
+FROM build AS lint
+RUN go vet ./...
+FROM scratch
+COPY --from=build /out/service /service
+USER 65532:65532
+HEALTHCHECK CMD ["/service","healthcheck"]
+`
+
 // validRepo writes a minimal repository that passes every rule.
 func validRepo(t *testing.T) string {
 	t.Helper()
@@ -98,7 +109,9 @@ func validRepo(t *testing.T) string {
 		"docs/standards/testing.md":            "x",
 		"docs/standards/definition-of-done.md": "x",
 		"openspec/config.yaml":                 "schema: spec-driven\n",
-		"services/core/Dockerfile":             "x",
+		"services/core/Dockerfile":             validDockerfile,
+		"services/core/compose.yaml":           "services: {}\n",
+		"docs/standards/new-product.md":        "x",
 		"services/core/AGENTS.md":              "x",
 		"services/core/README.md":              "x",
 		"services/core/go.mod":                 "x",
@@ -203,6 +216,17 @@ func TestPreferenceEnforcedByMissingPath(t *testing.T) {
 	t.Fatalf("want R-REG-004 violation for missing preference path, got %v", violations)
 }
 
+func TestHistoryFileIsMerged(t *testing.T) {
+	root := validRepo(t)
+	replace(t, root, registryPath, "  - id: P-0001\n", "  - id: P-0002\n    statement: newer\n    source: user\n  - id: P-0001\n")
+	replace(t, root, registryPath, "changelog:\n  - date: 2026-10-15\n    changes: [init]\n", "")
+	write(t, root, historyPath, "version: 1\npreferences:\n  - id: P-0003\n    statement: old\n    source: user\n    status: superseded\n    superseded_by: P-0002\nchangelog:\n  - date: 2026-10-15\n    changes: [init]\n")
+	_, violations := Run(root)
+	if len(violations) != 0 {
+		t.Fatalf("superseded entry in history should be valid, got %v", violations)
+	}
+}
+
 func TestEachRuleDetectsItsViolation(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -260,6 +284,10 @@ func TestEachRuleDetectsItsViolation(t *testing.T) {
 			replace(t, r, registryPath, "source: user\nassumptions", "source: user\n    status: accepted\n    superseded_by: P-0002\nassumptions")
 		}},
 		{"catalog invalid yaml", "R-CAT-001", func(t *testing.T, r string) { write(t, r, catalogPath, "deployables: {") }},
+		{"history invalid yaml", "R-REG-001", func(t *testing.T, r string) { write(t, r, historyPath, "decisions: [") }},
+		{"current entry in history", "R-REG-006", func(t *testing.T, r string) {
+			write(t, r, historyPath, "version: 1\npreferences:\n  - id: P-0009\n    statement: still current\n    source: user\nassumptions:\n  - id: A9\n    statement: x\n")
+		}},
 		{"empty owner", "R-CAT-001", func(t *testing.T, r string) { replace(t, r, catalogPath, "owner: team", `owner: ""`) }},
 		{"bad kind", "R-CAT-001", func(t *testing.T, r string) { replace(t, r, catalogPath, "kind: app", "kind: lambda") }},
 		{"path mismatch", "R-CAT-001", func(t *testing.T, r string) { replace(t, r, catalogPath, "path: apps/web", "path: apps/webby") }},
@@ -280,6 +308,8 @@ func TestEachRuleDetectsItsViolation(t *testing.T) {
 		{"planned but on disk", "R-CAT-003", func(t *testing.T, r string) { write(t, r, "apps/web/index.html", "x") }},
 		{"active but missing", "R-CAT-003", func(t *testing.T, r string) { remove(t, r, "services/core") }},
 		{"missing Dockerfile", "R-CAT-004", func(t *testing.T, r string) { remove(t, r, "services/core/Dockerfile") }},
+		{"missing compose file", "R-CAT-004", func(t *testing.T, r string) { remove(t, r, "services/core/compose.yaml") }},
+		{"missing new-product standard", "R-STRUCT-001", func(t *testing.T, r string) { remove(t, r, "docs/standards/new-product.md") }},
 		{"unknown dependency", "R-CAT-005", func(t *testing.T, r string) { replace(t, r, catalogPath, "depends_on: [auth]", "depends_on: [ghost]") }},
 		{"role missing section", "R-AGENT-001", func(t *testing.T, r string) {
 			replace(t, r, "docs/agents/reviewer.md", "## Stop conditions", "## Stop")
@@ -296,6 +326,89 @@ func TestEachRuleDetectsItsViolation(t *testing.T) {
 			replace(t, r, validationPath, "| R-DOC-003", "| R-NEW-001 | x | x |\n| R-DOC-003")
 		}},
 		{"catalog path not in architecture", "R-DOC-003", func(t *testing.T, r string) { write(t, r, "ARCHITECTURE.md", "services/core apps/web") }},
+		{"compose port on non-edge service", "R-COMPOSE-001", func(t *testing.T, r string) {
+			write(t, r, "infra/compose/base.yaml", "services:\n  api:\n    ports: [\"8080:8080\"]\n")
+		}},
+		{"compose file does not parse", "R-COMPOSE-001", func(t *testing.T, r string) { write(t, r, "infra/compose/base.yaml", "services: [") }},
+		{"docker socket mounted by another service", "R-COMPOSE-002", func(t *testing.T, r string) {
+			write(t, r, "infra/compose/base.yaml", "services:\n  api:\n    volumes: [\"/var/run/docker.sock:/var/run/docker.sock:ro\"]\n")
+		}},
+		{"socket-proxy mounts socket read-write", "R-COMPOSE-002", func(t *testing.T, r string) {
+			write(t, r, "infra/compose/base.yaml", "services:\n  socket-proxy:\n    volumes:\n      - type: bind\n        source: /var/run/docker.sock\n        target: /var/run/docker.sock\n")
+		}},
+		{"container_name set", "R-COMPOSE-003", func(t *testing.T, r string) {
+			write(t, r, "services/core/compose.yaml", "services:\n  core:\n    container_name: core\n")
+		}},
+		{"links used", "R-COMPOSE-003", func(t *testing.T, r string) {
+			write(t, r, "services/core/compose.yaml", "services:\n  core:\n    links: [db]\n")
+		}},
+		{"label routes ops port", "R-COMPOSE-003", func(t *testing.T, r string) {
+			write(t, r, "services/core/compose.yaml", "services:\n  core:\n    labels:\n      traefik.http.services.core.loadbalancer.server.port: 8081\n")
+		}},
+		{"label list routes ops port", "R-COMPOSE-003", func(t *testing.T, r string) {
+			write(t, r, "services/core/compose.yaml", "services:\n  core:\n    labels: [\"traefik.http.services.core.loadbalancer.server.port=8081\"]\n")
+		}},
+		{"third-party image without digest", "R-COMPOSE-004", func(t *testing.T, r string) {
+			write(t, r, "infra/compose/base.yaml", "services:\n  db:\n    image: postgres:17\n")
+		}},
+		{"base image without digest", "R-IMG-001", func(t *testing.T, r string) {
+			replace(t, r, "services/core/Dockerfile", "golang:1.26-alpine@sha256:abc", "golang:1.26-alpine")
+		}},
+		{"template base without digest", "R-IMG-001", func(t *testing.T, r string) {
+			write(t, r, "templates/go-service/Dockerfile", "FROM alpine:3.20\nUSER 65532\nHEALTHCHECK CMD [\"/x\"]\n")
+		}},
+		{"runs as root", "R-IMG-001", func(t *testing.T, r string) {
+			replace(t, r, "services/core/Dockerfile", "USER 65532:65532", "USER root")
+		}},
+		{"no USER", "R-IMG-001", func(t *testing.T, r string) {
+			replace(t, r, "services/core/Dockerfile", "USER 65532:65532\n", "")
+		}},
+		{"no HEALTHCHECK", "R-IMG-001", func(t *testing.T, r string) {
+			replace(t, r, "services/core/Dockerfile", "HEALTHCHECK CMD [\"/service\",\"healthcheck\"]\n", "")
+		}},
+		{"USER only in builder stage", "R-IMG-001", func(t *testing.T, r string) {
+			write(t, r, "services/core/Dockerfile", "FROM golang@sha256:abc AS build\nUSER 65532\nHEALTHCHECK CMD [\"/x\"]\nFROM scratch\nCOPY --from=build /x /x\n")
+		}},
+		{"HEALTHCHECK only in builder stage", "R-IMG-001", func(t *testing.T, r string) {
+			write(t, r, "services/core/Dockerfile", "FROM golang@sha256:abc AS build\nHEALTHCHECK CMD [\"/x\"]\nFROM scratch\nUSER 65532\nCOPY --from=build /x /x\n")
+		}},
+		{"template fragment publishes a port", "R-COMPOSE-001", func(t *testing.T, r string) {
+			write(t, r, "templates/go-service/compose.yaml", "services:\n  __NAME__:\n    ports: [\"8080:8080\"]\n")
+		}},
+		{"template fragment mounts docker socket", "R-COMPOSE-002", func(t *testing.T, r string) {
+			write(t, r, "templates/go-service/compose.yaml", "services:\n  __NAME__:\n    volumes: [\"/var/run/docker.sock:/var/run/docker.sock\"]\n")
+		}},
+		{"template fragment has a 8081 route", "R-COMPOSE-003", func(t *testing.T, r string) {
+			write(t, r, "templates/go-service/compose.yaml", "services:\n  __NAME__:\n    labels: [\"x.loadbalancer.server.port=8081\"]\n")
+		}},
+		{"run socket alias mounted", "R-COMPOSE-002", func(t *testing.T, r string) {
+			write(t, r, "infra/compose/base.yaml", "services:\n  api:\n    volumes: [\"/run/docker.sock:/run/docker.sock\"]\n")
+		}},
+		{"socket-proxy alias mounted read-write", "R-COMPOSE-002", func(t *testing.T, r string) {
+			write(t, r, "infra/compose/base.yaml", "services:\n  socket-proxy:\n    volumes: [\"/var/run/docker.sock:/var/run/docker.sock:ro\", \"/run/docker.sock:/run/docker.sock\"]\n")
+		}},
+		{"deployable without cap_drop", "R-COMPOSE-005", func(t *testing.T, r string) {
+			write(t, r, "services/core/compose.yaml", "services:\n  core:\n    read_only: true\n    security_opt: [\"no-new-privileges:true\"]\n")
+		}},
+		{"deployable without no-new-privileges", "R-COMPOSE-005", func(t *testing.T, r string) {
+			write(t, r, "services/core/compose.yaml", "services:\n  core:\n    read_only: true\n    cap_drop: [ALL]\n")
+		}},
+		{"deployable with writable root", "R-COMPOSE-005", func(t *testing.T, r string) {
+			write(t, r, "services/core/compose.yaml", "services:\n  core:\n    cap_drop: [ALL]\n    security_opt: [\"no-new-privileges:true\"]\n    read_only: false\n")
+		}},
+		{"template fragment not hardened", "R-COMPOSE-005", func(t *testing.T, r string) {
+			write(t, r, "templates/go-service/compose.yaml", "services:\n  __NAME__:\n    image: x@sha256:abc\n")
+		}},
+		{"workflow without permissions", "R-CI-002", func(t *testing.T, r string) {
+			write(t, r, ".github/workflows/ci.yml", "jobs:\n  test:\n    steps:\n      - run: make check\n")
+		}},
+		{"run interpolates expression", "R-CI-002", func(t *testing.T, r string) {
+			write(t, r, ".github/workflows/ci.yml", "permissions:\n  contents: read\njobs:\n  test:\n    steps:\n      - run: echo ${{ github.head_ref }}\n")
+		}},
+		{"action not pinned to SHA", "R-CI-001", func(t *testing.T, r string) {
+			write(t, r, ".github/workflows/ci.yml", "jobs:\n  test:\n    steps:\n      - uses: actions/checkout@v4\n")
+		}},
+		{"workflow does not parse", "R-CI-001", func(t *testing.T, r string) { write(t, r, ".github/workflows/ci.yml", "jobs: [") }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

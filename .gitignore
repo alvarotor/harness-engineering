@@ -1,4 +1,4 @@
-# Secrets (D-0010, D-0012): never commit real env files
+# Secrets (D-0009, D-0012): never commit real env files
 .env
 *.secret.env
 *.local.env
@@ -11,8 +11,10 @@ node_modules/
 playwright-report/
 test-results/
 
-# OpenTofu
-.terraform/
-*.tfstate
-*.tfstate.*
-*.tfplan
+# Runtime secrets (D-0009): only the dev-only local secret file is committed (dev-only exception)
+infra/env/*/secrets/
+!infra/env/local/secrets/
+!infra/env/local/secrets/postgres_password
+
+# Build output
+bin/

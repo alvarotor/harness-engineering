@@ -6,14 +6,14 @@ Tool adapters (e.g. `.opencode/agents/<role>.md`) only add permissions and point
 | Role | One-line purpose | Writes to |
 |---|---|---|
 | [orchestrator](orchestrator.md) | Sequences the work, enforces evidence and owner gates. **Entry point** | nothing (delegates only) |
-| [architect](architect.md) | Owns decisions, boundaries and decision changes | `docs/adr`, `docs/decisions`, `ARCHITECTURE.md`, `docs/standards`, `AGENTS.md` files |
+| [architect](architect.md) | Owns decisions, boundaries and decision changes | `docs/adr`, `docs/decisions`, `ARCHITECTURE.md`, `docs/standards`, `docs/agents`, `AGENTS.md` files; agent adapters with owner approval |
 | [planner](planner.md) | Turns requests into approved OpenSpec changes; archives them | `openspec/changes/**`, `openspec/specs/**` (archive), `docs/catalog` (planned entries) |
 | [implementer](implementer.md) | Implements tasks with unit and integration tests, and documents them | code, migrations, contracts, service docs |
 | [test-engineer](test-engineer.md) | Independent verification: coverage gaps, contract, migration and e2e tests | tests, `e2e/` |
 | [security-reviewer](security-reviewer.md) | ASVS L1 review of security-sensitive changes only | reports only |
 | [reviewer](reviewer.md) | Correctness and design fit; last code-quality gate | reports only |
 | [documentation](documentation.md) | Verifies each role documented its work; fixes gaps | Markdown docs, `docs/catalog` (fixes only) |
-| [devops](devops.md) | Compose, Traefik, OpenTofu, CI/CD, deploys | `infra/`, `.github/`, `Makefile` |
+| [devops](devops.md) | Compose, Traefik, CI/CD, deploys (IaC once Q9) | `infra/`, `.github/`, `Makefile` |
 
 ## Separation rules
 - **Orchestrator** never edits files, so it cannot do work it should delegate.
@@ -27,7 +27,7 @@ What each kind of change must update. The author does it, and documentation veri
 
 | When you change… | Update | Usual author |
 |---|---|---|
-| a decision, preference or convention | `docs/decisions/registry.yaml` (+ `changelog`), ADR + ADR index, affected `docs/standards`, `AGENTS.md` files | architect |
+| a decision, preference or convention | `docs/decisions/registry.yaml` (+ `changelog` in `history.yaml`), ADR + ADR index, affected `docs/standards`, `AGENTS.md` files | architect |
 | a deployable's behavior, config or env vars | its `README.md` (purpose, env vars, commands), its `AGENTS.md` if rules change | implementer |
 | deployables, ownership, data or dependencies | `docs/catalog/services.yaml` (+ dependency diagram), `ARCHITECTURE.md` §2 | planner (planned), implementer (active) |
 | a contract | the proto comments; `contracts/openapi` regenerated | implementer |
@@ -39,6 +39,11 @@ What each kind of change must update. The author does it, and documentation veri
 | developer commands or prerequisites | root `README.md` / `CONTRIBUTING.md`, `make help` text | whoever changes them |
 
 ## Flow (run by the orchestrator)
+
+The orchestrator first picks a lane ([`AGENTS.md` §6](../../AGENTS.md#6-lanes-p-0015), P-0015):
+- **S:** implementer → `make check`. No OpenSpec, no other roles.
+- **M:** planner (light change) → owner approves → implementer → reviewer, which also does the documentation check → planner archives.
+- **L:** the full flow below.
 
 ```mermaid
 flowchart LR
@@ -52,11 +57,12 @@ flowchart LR
   test -->|no trigger| rev[reviewer]
   sec --> rev
   rev --> docs[documentation: verify docs]
-  docs --> gate2{{owner approves gated items + archive}}
+  docs --> gate2{{owner approves gated items}}
   gate2 --> archive[planner: archive]
 ```
 
 Findings at any step go back through the orchestrator to the owning role. After two failed rounds with the same findings, it escalates to the owner.
+Any role that finds a change is riskier than its lane (touches a lane-L path or topic) sends it back to the orchestrator to move it up.
 
 ## Rules for every role
 - Follow [`AGENTS.md`](../../AGENTS.md): session start, precedence, memory protocol, conflict format.
@@ -69,7 +75,7 @@ Findings at any step go back through the orchestrator to the owning role. After 
   - new infrastructure components or external services
   - security-sensitive changes
   - production deploys
-  - `tofu apply`
+  - infrastructure-as-code `apply`
   - destructive migrations
   - lowering a quality gate
-  - archiving a change
+  - starting apply of an M or L change (proposal approval)

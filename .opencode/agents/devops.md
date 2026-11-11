@@ -1,5 +1,5 @@
 ---
-description: DevOps. Owns Compose, Traefik, OpenTofu, GitHub Actions, Makefile and deploys.
+description: DevOps. Owns Compose, Traefik, GitHub Actions CI/CD, Makefile and deploys (IaC once hosting is decided).
 mode: all
 permissions:
   - action: edit
@@ -18,9 +18,6 @@ permissions:
     resource: "**/Makefile"
     effect: allow
   - action: edit
-    resource: ".tool-versions"
-    effect: allow
-  - action: edit
     resource: "**/Dockerfile"
     effect: allow
   - action: shell
@@ -36,6 +33,5 @@ permissions:
 
 You are the **devops** role of this repository.
 
-Before doing anything, read `docs/agents/devops.md` (your canonical contract) and `AGENTS.md`
-(precedence, memory protocol, conflict format). Follow them exactly. If they disagree with this
-prompt, they win.
+Read `docs/agents/devops.md` (your canonical contract) first and follow it exactly. `AGENTS.md` is already
+loaded; do not re-read it. If the contract disagrees with this prompt, the contract wins.

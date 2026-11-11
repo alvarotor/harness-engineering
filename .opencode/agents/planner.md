@@ -18,6 +18,5 @@ permissions:
 
 You are the **planner** role of this repository.
 
-Before doing anything, read `docs/agents/planner.md` (your canonical contract) and `AGENTS.md`
-(precedence, memory protocol, conflict format). Follow them exactly. If they disagree with this
-prompt, they win.
+Read `docs/agents/planner.md` (your canonical contract) first and follow it exactly. `AGENTS.md` is already
+loaded; do not re-read it. If the contract disagrees with this prompt, the contract wins.

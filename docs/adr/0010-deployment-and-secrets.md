@@ -1,6 +1,7 @@
 # 0010 VM deployment, digest promotion, GitHub Environments secrets
 
-- Status: accepted
+- Status: superseded
+- Superseded by: 0023
 - Date: 2026-10-15
 - Source: user
 

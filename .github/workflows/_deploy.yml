@@ -1,0 +1,147 @@
+# Deploy the images built for one commit (ref) to one environment over SSH (ADR-0023, P-0018).
+# Skips itself, and succeeds, while the environment has no DEPLOY_HOST variable. Once DEPLOY_HOST is set, the
+# deploy fails closed unless DEPLOY_KNOWN_HOSTS holds the host's key (no trust on first use).
+# Values reach the shell only through env:. Runtime secrets are written to files, never to the Compose env file.
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub Environment to deploy to (dev or prod)
+        required: true
+        type: string
+      ref:
+        description: Commit SHA whose images are deployed (images are tagged with it)
+        required: true
+        type: string
+    secrets:
+      DEPLOY_SSH_KEY:
+        description: Private key of DEPLOY_USER on the host (environment secret; passed by name)
+        required: false
+      DEPLOY_ENV_FILE:
+        description: NAME=value runtime secrets, one per line (environment secret; passed by name)
+        required: false
+
+permissions: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    # Ceiling: read the repository, read the GHCR digests. A caller cannot grant this job more.
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Check deploy configuration
+        id: config
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+        run: |
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "deploy skipped: set DEPLOY_HOST/DEPLOY_USER vars and DEPLOY_SSH_KEY secret in GitHub Environment $ENVIRONMENT"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=""
+          [ -n "$DEPLOY_USER" ] || missing="$missing DEPLOY_USER(var)"
+          [ -n "$DEPLOY_KNOWN_HOSTS" ] || missing="$missing DEPLOY_KNOWN_HOSTS(var)"
+          [ -n "$DEPLOY_SSH_KEY" ] || missing="$missing DEPLOY_SSH_KEY(secret)"
+          [ -n "$DEPLOY_ENV_FILE" ] || missing="$missing DEPLOY_ENV_FILE(secret)"
+          if [ -n "$missing" ]; then
+            echo "deploy failed: DEPLOY_HOST is set in $ENVIRONMENT but these are missing:$missing (infra/README.md)" >&2
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write the release env file (digests and non-secret values only)
+        if: steps.config.outputs.enabled == 'true'
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          REF: ${{ inputs.ref }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          DOMAIN: ${{ vars.DOMAIN }}
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+        run: |
+          set -eu
+          umask 077
+          out="$RUNNER_TEMP/release.env"
+          : > "$out"
+          owner=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          # Capture first: a pipeline would hide a failing make or jq, and the loop would deploy an incomplete set.
+          deployables=$(make -s deployables ALL=1)
+          paths=$(printf '%s' "$deployables" | jq -r '.[]')
+          for path in $paths; do
+            name=${path##*/}
+            image="ghcr.io/$owner/har-$name:$REF"
+            if ! manifest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}'); then
+              echo "deploy: $image is missing: main has not built this commit (already built for dev?)" >&2
+              exit 1
+            fi
+            digest=$(printf '%s' "$manifest" | jq -r '.digest // empty')
+            if [ -z "$digest" ]; then
+              echo "deploy: $image has no digest; refusing to deploy" >&2
+              exit 1
+            fi
+            var=IMAGE_$(printf '%s' "$name" | tr 'a-z-' 'A-Z_')
+            printf '%s=ghcr.io/%s/har-%s@%s\n' "$var" "$owner" "$name" "$digest" >> "$out"
+          done
+          printf 'ENV=%s\nDOMAIN=%s\nACME_EMAIL=%s\n' "$ENVIRONMENT" "$DOMAIN" "$ACME_EMAIL" >> "$out"
+
+      - name: Write runtime secrets to a file (never to the env file)
+        if: steps.config.outputs.enabled == 'true'
+        env:
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+        run: |
+          set -eu
+          umask 077
+          printf '%s\n' "$DEPLOY_ENV_FILE" > "$RUNNER_TEMP/secrets.env"
+
+      - name: Prepare the SSH key and the pinned host key
+        if: steps.config.outputs.enabled == 'true'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+
+      - name: Deploy over SSH
+        if: steps.config.outputs.enabled == 'true'
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          set -eu
+          make deploy ENV="$ENVIRONMENT" HOST="$DEPLOY_HOST" SSH_USER="$DEPLOY_USER" \
+            ENV_FILE="$RUNNER_TEMP/release.env" SECRETS_FILE="$RUNNER_TEMP/secrets.env" \
+            KNOWN_HOSTS="$RUNNER_TEMP/known_hosts" SSH_KEY="$RUNNER_TEMP/deploy_key"
+
+      - name: Remove key and env files from the runner
+        if: always() && steps.config.outputs.enabled == 'true'
+        run: rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/known_hosts" "$RUNNER_TEMP/release.env" "$RUNNER_TEMP/secrets.env"

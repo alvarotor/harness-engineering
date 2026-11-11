@@ -1,0 +1,77 @@
+# Merge to main only (called by main.yml): lint, test, build, scan and push one deployable image to GHCR under the
+# commit SHA. The digest is written to the job summary. Split from _deployable.yml so pull requests never get
+# packages: write (a called job cannot exceed its caller's grant).
+name: publish
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: Deployable folder, for example services/orders
+        required: true
+        type: string
+      tag:
+        description: Image tag (the commit SHA)
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: hashFiles(format('{0}/go.mod', inputs.path)) != ''
+        with:
+          go-version-file: ${{ inputs.path }}/go.mod
+      - name: Install golangci-lint
+        if: hashFiles(format('{0}/go.mod', inputs.path)) != ''
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Lint, test and build the image
+        env:
+          DEPLOYABLE: ${{ inputs.path }}
+          TAG: ${{ inputs.tag }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -eu
+          name=${DEPLOYABLE##*/}
+          owner=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          make -C "$DEPLOYABLE" lint test image "IMAGE=ghcr.io/$owner/har-$name:$TAG"
+      - name: Scan the image (HIGH and CRITICAL with a fix)
+        env:
+          DEPLOYABLE: ${{ inputs.path }}
+          TAG: ${{ inputs.tag }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -eu
+          name=${DEPLOYABLE##*/}
+          owner=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          make image-scan "IMAGE=ghcr.io/$owner/har-$name:$TAG"
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push the image and record its digest
+        env:
+          DEPLOYABLE: ${{ inputs.path }}
+          TAG: ${{ inputs.tag }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -eu
+          name=${DEPLOYABLE##*/}
+          owner=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          image="ghcr.io/$owner/har-$name:$TAG"
+          docker push "$image"
+          digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$image")
+          echo "$digest" | tee -a "$GITHUB_STEP_SUMMARY"

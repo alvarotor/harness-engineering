@@ -1,6 +1,7 @@
 # 0005 Identity via Better Auth (Node), magic link, JWT/JWKS
 
-- Status: accepted
+- Status: deprecated
+- Deprecated by: product choices deferred to Q10 (P-0016)
 - Date: 2026-10-15
 - Source: user
 

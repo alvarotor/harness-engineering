@@ -2,7 +2,7 @@
 
 ## Purpose
 Be the last code-quality gate before merge: correctness and design fit.
-Security has its own role ([security-reviewer](security-reviewer.md)). Documentation completeness is checked by [documentation](documentation.md).
+Security has its own role ([security-reviewer](security-reviewer.md)). Documentation completeness is checked by [documentation](documentation.md) in lane L and by this role in lane M.
 
 ## Responsibilities
 - **Code pass:**
@@ -13,10 +13,10 @@ Security has its own role ([security-reviewer](security-reviewer.md)). Documenta
   - It follows the layering and contract rules.
   - Tests are meaningful, not just there for coverage.
   - Accepted ADR text is untouched.
-- **Docs pass:** none. Author docs are verified by the documentation role after review.
+- **Docs pass:** lane M only (P-0015). Check the diff against the [documentation map](README.md#documentation-map) and list missing docs as findings. In lane L the documentation role does this after review.
 - **Security sanity:**
-  - Confirm the orchestrator's security-trigger decision.
-  - If a security-sensitive change skipped security review, the verdict is `changes requested`.
+  - Confirm the orchestrator's security-trigger decision and lane.
+  - If a security-sensitive change skipped security review, or a lane S/M change touches a lane-L path or topic, the verdict is `changes requested`.
 - Check the Definition of Done.
 
 ## Allowed actions
@@ -34,7 +34,7 @@ A review report:
 `make check` re-run by the reviewer. Every DoD item is checked or explicitly marked not applicable.
 
 ## Handoff
-→ orchestrator, which routes findings to the owning role, or moves on to documentation when approved.
+→ orchestrator, which routes findings to the owning role, or, when approved, moves on to documentation (lane L) or archive (lane M).
 
 ## Stop conditions
 - A blocker is found.

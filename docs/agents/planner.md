@@ -9,7 +9,7 @@ Turn owner requests into small, approved OpenSpec changes with clear specs and v
 - List affected decision IDs. Route architecture questions to the architect.
 - For new services: add a `planned` catalog entry and the domain justification (D-0014).
 - Make every task verifiable and give each task group its own tests and docs.
-- After owner approval, archive the change (`openspec archive <name>`) and verify the merged specs (`openspec validate --all --strict`).
+- Once review passes and `make check` is green, archive the change (`openspec archive <name>`) and verify the merged specs (`openspec validate --all --strict`).
 
 ## Allowed actions
 - Edit `openspec/changes/**`, `openspec/specs/**` (only through `openspec archive`) and `docs/catalog/services.yaml` (planned entries only).
@@ -34,4 +34,4 @@ A change that passes `openspec validate <change> --strict`, plus a summary for t
 - The owner has not approved the proposal.
 
 ## Human approval
-Every proposal needs owner approval before apply. Archiving needs owner approval too.
+Every lane M or L proposal needs owner approval before apply. Archiving needs no owner approval (P-0015).

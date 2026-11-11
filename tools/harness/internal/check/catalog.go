@@ -135,7 +135,7 @@ func checkDeployableFiles(r *Repo) []Violation {
 		if d.Status != "active" {
 			continue
 		}
-		required := []string{"Dockerfile", "AGENTS.md", "README.md"}
+		required := []string{"Dockerfile", "AGENTS.md", "README.md", "compose.yaml"}
 		if m, ok := manifest[d.Language]; ok {
 			required = append(required, m)
 		}

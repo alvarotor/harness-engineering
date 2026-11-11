@@ -1,6 +1,7 @@
 # 0006 Frontends: Preact + Vite SPA served as static containers
 
-- Status: accepted
+- Status: superseded
+- Superseded by: 0024
 - Date: 2026-10-15
 - Source: user
 

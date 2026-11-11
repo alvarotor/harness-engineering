@@ -3,16 +3,15 @@ schema: spec-driven
 # Project context injected into every OpenSpec artifact and workflow.
 # Keep this to constraints an agent cannot infer from code. Details live in the linked files.
 context: |
-  Repository = project memory (ADR-0001). Before writing any artifact, read:
-  - docs/decisions/registry.yaml (decisions D-*, preferences P-*, assumptions A-*, open questions Q-*)
-  - AGENTS.md (instruction precedence, memory protocol, agent roles)
-  - ARCHITECTURE.md and the ADRs referenced by affected decisions
-  Instruction precedence: current owner request > accepted OpenSpec specs > accepted ADRs/registry
-  > docs/standards > scoped AGENTS.md > root AGENTS.md/defaults. If a request conflicts with a
-  higher layer, report the conflict (decision ID, quote, proposed resolution) and wait for the owner.
-  Never silently override a recorded decision.
-  Product: B2C, roles customer/support/admin, single tenant. Stage: way of working + first basic
-  architecture; no product features until the owner asks.
+  Repository = project memory (ADR-0001). AGENTS.md is already loaded. Before writing any artifact, read:
+  - docs/decisions/registry.yaml (current decisions D-*, preferences P-*, assumptions A-*, open questions Q-*)
+  - only the ARCHITECTURE.md sections and ADRs referenced by affected decisions
+  If a request conflicts with a higher layer (AGENTS.md §2), report the conflict (decision ID, quote,
+  proposed resolution) and wait for the owner. Never silently override a recorded decision.
+  Lanes (P-0015): lane M changes are light (proposal, delta spec, tasks; design only if needed);
+  lane L changes use every artifact. Lane S needs no change.
+  Product: not chosen yet (Q6, P-0016); deferred choices Q6-Q11 are asked at their trigger, never assumed.
+  Stage: way of working + first basic architecture; no product features until the owner asks.
 
 rules:
   proposal:
@@ -20,7 +19,7 @@ rules:
     - If the change contradicts an accepted decision, add a "Decision change" section that names the superseding ADR to be written. The owner must approve it explicitly.
     - A new backend service must state its business domain, owned entities/data, and why it is not part of an existing domain (D-0014).
     - A non-Go backend must justify the core dependency that requires it (D-0004 override rule).
-    - A new async event must state why losing it is acceptable (D-0015), or propose upgrading the messaging decision.
+    - A change that reaches an open question's needed_by trigger (Q6-Q11) must record the owner's answer as a decision first (docs/standards/new-product.md).
   specs:
     - Specs describe observable behavior only; no library or framework names.
     - Every requirement uses SHALL/MUST and has at least one WHEN/THEN scenario.

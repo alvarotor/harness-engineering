@@ -1,6 +1,7 @@
 # 0016 Infrastructure as code with OpenTofu, provider-neutral, AWS default
 
-- Status: accepted
+- Status: deprecated
+- Deprecated by: product choices deferred to Q9 (P-0016)
 - Date: 2026-10-15
 - Source: user
 

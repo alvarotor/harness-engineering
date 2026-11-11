@@ -1,0 +1,56 @@
+# Merge to main: build and push every deployable image once (tag = commit SHA), then deploy dev.
+name: main
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main
+  cancel-in-progress: false
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: list
+        run: echo "matrix=$(make -s deployables ALL=1)" >> "$GITHUB_OUTPUT"
+
+  # shortcut: builds every deployable on each merge; build only changed ones and reuse previous digests when builds get slow (ADR-0023)
+  build:
+    needs: list
+    if: needs.list.outputs.matrix != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        path: ${{ fromJSON(needs.list.outputs.matrix) }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_publish.yml
+    with:
+      path: ${{ matrix.path }}
+      tag: ${{ github.sha }}
+
+  # Runs when there are no deployables (build skipped) but not when the build failed or was cancelled.
+  deploy-dev:
+    needs: [list, build]
+    if: ${{ always() && needs.list.result == 'success' && needs.build.result != 'failure' && needs.build.result != 'cancelled' }}
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: dev
+      ref: ${{ github.sha }}
+    secrets:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}

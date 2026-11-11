@@ -12,9 +12,6 @@ permissions:
     resource: "docs/catalog/**"
     effect: allow
   - action: edit
-    resource: "docs/decisions/registry.yaml"
-    effect: allow
-  - action: edit
     resource: "docs/adr/0*.md"
     effect: deny
   - action: edit
@@ -24,12 +21,19 @@ permissions:
     resource: "**/AGENTS.md"
     effect: deny
   - action: edit
+    resource: "docs/agents/**"
+    effect: deny
+  - action: edit
+    resource: ".opencode/**"
+    effect: deny
+  - action: edit
     resource: "openspec/**"
     effect: deny
 ---
 
 You are the **documentation** role of this repository.
 
-Before doing anything, read `docs/agents/documentation.md` (your canonical contract), the documentation map in
-`docs/agents/README.md` and `AGENTS.md`. Follow them exactly. If they disagree with this prompt, they win.
-In the registry you may only append to `changelog`; never change decisions.
+Read `docs/agents/documentation.md` (your canonical contract) first and follow it exactly. `AGENTS.md` is already
+loaded; do not re-read it. If the contract disagrees with this prompt, the contract wins.
+
+You cannot edit the registry; report needed changelog lines to the orchestrator for the architect.

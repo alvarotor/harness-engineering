@@ -11,11 +11,4 @@ data they hold, and what they depend on. `tools/harness` validates it (R-CAT-*).
 
 ## Dependency overview (current)
 
-```mermaid
-flowchart LR
-  web --> auth
-  web --> core
-  admin --> auth
-  admin --> core
-  core -->|JWKS| auth
-```
+No deployables yet (the product is not chosen, Q6). Add a Mermaid `flowchart` here with the first entries.

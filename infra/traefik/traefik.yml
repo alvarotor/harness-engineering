@@ -1,0 +1,40 @@
+# Static configuration for Traefik (ADR-0009), mounted as /etc/traefik/static.yml. Routes come from Compose
+# labels only. infra/compose/compose.deploy.yaml repeats these settings as flags and adds websecure, ACME and
+# the HTTP→HTTPS redirect: keep both in sync.
+log:
+  level: INFO
+  format: json
+accessLog:
+  format: json
+api:
+  dashboard: false
+  insecure: false
+global:
+  # Deny by default: a request whose header name aliases another (X.Auth.User, X_Auth_User) is rejected with 400,
+  # so a backend that normalises header names cannot be spoofed. Keep it unless a product needs otherwise.
+  aliasHeadersStrategy: reject
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      # Deny encoded path delimiters and NUL (RFC 3986 split-view risk). Backends must not rely on them. Relax per
+      # product only with an owner decision.
+      # Not covered by any Traefik option: encoded dots (%2e). See infra/README.md, Encoded characters and dots.
+      encodedCharacters:
+        allowEncodedSlash: false
+        allowEncodedBackSlash: false
+        allowEncodedNullCharacter: false
+        allowEncodedSemicolon: false
+        allowEncodedPercent: false
+        allowEncodedQuestionMark: false
+        allowEncodedHash: false
+  ping:
+    # Internal ops port (like 8081 for services): health check only, never published or routed.
+    address: ":8081"
+ping:
+  entryPoint: ping
+providers:
+  docker:
+    endpoint: tcp://socket-proxy:2375
+    exposedByDefault: false
+    network: har_edge

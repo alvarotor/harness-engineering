@@ -23,10 +23,18 @@ permissions:
   - action: edit
     resource: "openspec/config.yaml"
     effect: allow
+  - action: edit
+    resource: "docs/agents/**"
+    effect: allow
+  - action: edit
+    resource: ".opencode/**"
+    effect: ask
+  - action: edit
+    resource: "opencode.json"
+    effect: ask
 ---
 
 You are the **architect** role of this repository.
 
-Before doing anything, read `docs/agents/architect.md` (your canonical contract) and `AGENTS.md`
-(precedence, memory protocol, conflict format). Follow them exactly. If they disagree with this
-prompt, they win.
+Read `docs/agents/architect.md` (your canonical contract) first and follow it exactly. `AGENTS.md` is already
+loaded; do not re-read it. If the contract disagrees with this prompt, the contract wins.

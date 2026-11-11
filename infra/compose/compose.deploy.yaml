@@ -1,0 +1,67 @@
+# Deploy overlay, merged on the host after compose.yaml and the deployable fragments (ADR-0023).
+# Images come from the release env file (IMAGE_<NAME>=ghcr.io/...@sha256:...). Always run with --no-build.
+# Variables (non-secret, from the release env file): ENV, DOMAIN (routes and HTTPS smoke test), ACME_EMAIL
+# (Let's Encrypt account, required). Runtime secrets are files under HAR_SECRETS_DIR, see compose.yaml.
+services:
+  letsencrypt-init:
+    # One-shot: the named volume is created root-owned, and Traefik runs as 65532, so hand the volume over first.
+    image: traefik:v3.7.18@sha256:9c437ac4f09ce6f4980a8544902d3475fdf70a1a7c578729581d2535dfa7d635
+    entrypoint: ["sh", "-c", "mkdir -p /letsencrypt && chown -R 65532:65532 /letsencrypt"]
+    user: "0:0"
+    network_mode: none
+    volumes:
+      - letsencrypt:/letsencrypt
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"
+
+  traefik:
+    # Traefik ignores every other flag and environment variable once a config file is loaded, and a static
+    # file cannot read ${ACME_EMAIL}. So the deploy command drops --configFile and repeats the settings of
+    # infra/traefik/traefik.yml as flags, adding TLS, ACME and the HTTP→HTTPS redirect. Keep both in sync.
+    # Never mount a file at /etc/traefik/traefik.yml: Traefik loads that path automatically and ignores flags.
+    depends_on:
+      letsencrypt-init:
+        condition: service_completed_successfully
+    command:
+      - --log.level=INFO
+      - --log.format=json
+      - --accessLog.format=json
+      - --api.dashboard=false
+      - --api.insecure=false
+      - --global.aliasHeadersStrategy=reject
+      - --entryPoints.web.address=:80
+      - --entryPoints.web.http.redirections.entryPoint.to=websecure
+      - --entryPoints.web.http.redirections.entryPoint.scheme=https
+      - --entryPoints.web.http.encodedCharacters.allowEncodedSlash=false
+      - --entryPoints.web.http.encodedCharacters.allowEncodedBackSlash=false
+      - --entryPoints.web.http.encodedCharacters.allowEncodedNullCharacter=false
+      - --entryPoints.web.http.encodedCharacters.allowEncodedSemicolon=false
+      - --entryPoints.web.http.encodedCharacters.allowEncodedPercent=false
+      - --entryPoints.web.http.encodedCharacters.allowEncodedQuestionMark=false
+      - --entryPoints.web.http.encodedCharacters.allowEncodedHash=false
+      - --entryPoints.websecure.address=:443
+      - --entryPoints.websecure.http.tls.certResolver=le
+      - --entryPoints.websecure.http.encodedCharacters.allowEncodedSlash=false
+      - --entryPoints.websecure.http.encodedCharacters.allowEncodedBackSlash=false
+      - --entryPoints.websecure.http.encodedCharacters.allowEncodedNullCharacter=false
+      - --entryPoints.websecure.http.encodedCharacters.allowEncodedSemicolon=false
+      - --entryPoints.websecure.http.encodedCharacters.allowEncodedPercent=false
+      - --entryPoints.websecure.http.encodedCharacters.allowEncodedQuestionMark=false
+      - --entryPoints.websecure.http.encodedCharacters.allowEncodedHash=false
+      - --entryPoints.ping.address=:8081
+      - --ping.entryPoint=ping
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=har_edge
+      - --certificatesResolvers.le.acme.email=${ACME_EMAIL:?set ACME_EMAIL in the release env file}
+      - --certificatesResolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesResolvers.le.acme.httpChallenge.entryPoint=web
+    ports:
+      - "443:443"
+    volumes:
+      - letsencrypt:/letsencrypt
+
+volumes:
+  letsencrypt: {}

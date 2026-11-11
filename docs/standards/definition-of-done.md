@@ -3,7 +3,7 @@
 A change is done only when **every applicable item** holds and was **verified by running it** (P-0004).
 
 ## Always
-- [ ] An OpenSpec change exists, was approved, and all its tasks are checked (except typo-level changes).
+- [ ] An OpenSpec change exists, was approved, and all its tasks are checked (lanes M and L; lane S needs none, P-0015).
 - [ ] `make check` passes locally.
 - [ ] No conflict with registry decisions, or the conflict was resolved through a decision change.
 - [ ] New or changed preferences and decisions are persisted (registry, ADR, standards, AGENTS.md, templates, harness).
@@ -27,11 +27,11 @@ A change is done only when **every applicable item** holds and was **verified by
 
 ## Deployable / infra
 - [ ] Image builds, runs non-root, and its health check passes; Trivy shows no fixable HIGH/CRITICAL.
-- [ ] Compose config validates; `tofu validate`/`plan` is clean for infra changes.
+- [ ] Compose config validates (`make compose-config`); IaC `validate`/`plan` is clean once IaC exists (Q9).
 - [ ] Owner approval for gated items (security-sensitive, prod, new infra, destructive migration).
 
 ## Review
 - [ ] Security-reviewer report, if a [security trigger](security.md#security-review-triggers) matched. Findings resolved or accepted by the owner.
 - [ ] Reviewer report (code and design), with findings resolved or accepted by the owner.
-- [ ] Documentation report: every changed area has its required docs (fixed or escalated gaps listed).
-- [ ] The OpenSpec change is archived by the planner after owner approval.
+- [ ] Documentation check: every changed area has its required docs (lane L: documentation report; lane M: part of the reviewer report).
+- [ ] Lane M or L: the OpenSpec change is archived by the planner after review passes.

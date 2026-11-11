@@ -1,0 +1,9 @@
+# gitleaks configuration for `make secrets-scan` (CI, M6). Extends the default rules.
+title = "har secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Dev-only exception (docs/standards/security.md accepted risks): the local Postgres password and the local env file. Deploy never reads them."
+paths = ['''^infra/env/local/compose\.env$''', '''^infra/env/local/secrets/postgres_password$''']

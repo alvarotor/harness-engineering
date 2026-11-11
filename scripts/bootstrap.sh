@@ -52,7 +52,7 @@ check_tool() {
   fi
 }
 
-for tool in make go node tofu buf golangci-lint openspec; do
+for tool in make go node buf golangci-lint openspec; do
   check_tool "$tool"
 done
 

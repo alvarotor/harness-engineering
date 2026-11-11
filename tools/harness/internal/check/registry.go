@@ -240,6 +240,32 @@ func checkSupersession(r *Repo) []Violation {
 	return out
 }
 
+// checkHistory keeps current entries out of the history file, which agents do not read at session start.
+func checkHistory(r *Repo) []Violation {
+	if r.History == nil {
+		return nil
+	}
+	var out []Violation
+	bad := func(id string) {
+		out = append(out, Violation{"R-REG-006", historyPath, id + " is current but lives in the history file", "move it to " + registryPath + ", or set status: superseded/deprecated"})
+	}
+	retired := func(s string) bool { return s == "superseded" || s == "deprecated" }
+	for _, d := range r.History.Decisions {
+		if !retired(d.Status) {
+			bad(d.ID)
+		}
+	}
+	for _, p := range r.History.Preferences {
+		if !retired(p.Status) {
+			bad(p.ID)
+		}
+	}
+	for _, e := range append(append([]Entry{}, r.History.Assumptions...), r.History.OpenQuestions...) {
+		bad(e.ID)
+	}
+	return out
+}
+
 // scopeDecision returns the active decision governing a scope such as "services/*".
 func scopeDecision(reg *Registry, scope string) *Decision {
 	for i, d := range reg.Decisions {

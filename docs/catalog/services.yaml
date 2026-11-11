@@ -1,55 +1,8 @@
 # Service catalog: every deployable, its owner, data and dependencies (validated by R-CAT-*).
 # status: planned (approved, no code yet) | active (code exists) | deprecated
 # personal_data: inventory of personal data stored (D-0012). Keep it current; it decides GDPR effort later.
+# Empty until the product is chosen (Q6). Add entries through the OpenSpec change that approves the deployable.
 
 version: 1
 
-deployables:
-  - name: web
-    kind: app
-    path: apps/web
-    language: typescript
-    status: planned
-    owner: unassigned
-    description: Customer-facing SPA.
-    exposed: "${DOMAIN}"
-    personal_data: []
-    depends_on: [auth, core]
-
-  - name: admin
-    kind: app
-    path: apps/admin
-    language: typescript
-    status: planned
-    owner: unassigned
-    description: Staff (support, admin) SPA.
-    exposed: "admin.${DOMAIN}"
-    personal_data: []
-    depends_on: [auth, core]
-
-  - name: auth
-    kind: service
-    path: services/auth
-    language: typescript
-    status: planned
-    owner: unassigned
-    domain: identity
-    description: Better Auth (Node + Hono). Magic-link login, sessions, roles, JWT/JWKS issuer.
-    exposed: "auth.${DOMAIN}"
-    database: auth
-    personal_data: [email, name, ip_address, user_agent]
-    depends_on: []
-    decisions: [D-0004 exception, D-0005]
-
-  - name: core
-    kind: service
-    path: services/core
-    language: go
-    status: planned
-    owner: unassigned
-    domain: tbd-first-domain
-    description: First business domain service; renamed when the domain is named (A5).
-    exposed: "api.${DOMAIN}"
-    database: core
-    personal_data: []
-    depends_on: [auth]
+deployables: []

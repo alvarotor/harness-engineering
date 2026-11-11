@@ -11,6 +11,7 @@ Layer 4 in the precedence model. Decisions referenced by ID win over this file.
 - Host developer tools are checked for presence without version pins or a version manager (D-0021). Application dependencies are pinned by lockfile (`go.sum`, `pnpm-lock.yaml`). Images are pinned by digest.
 
 ## Go (default backend, D-0004)
+- New services start from `templates/go-service` (`make new-service name=<x>`).
 - Layout and dependency rule: [ADR-0004](../adr/0004-go-hexagonal-lite-backends.md).
 - Formatting: `gofmt`/`goimports`. Lint: `golangci-lint` with the repo config. Lint warnings fail CI.
 - Errors:
@@ -22,13 +23,14 @@ Layer 4 in the precedence model. Decisions referenced by ID win over this file.
 - Constructors take explicit dependencies (no DI framework, no `init()` side effects).
 - Logging via `log/slog` (JSON handler) only. No `fmt.Print*` in service code.
 
-## TypeScript (apps, `services/auth`)
-- `strict: true`, ESM only, Node 24 LTS for servers. Lint: ESLint (typescript-eslint, recommended-type-checked). Format: Prettier.
+## TypeScript (apps, D-0024)
+- `strict: true`, ESM only, Node LTS for servers. Lint: ESLint (typescript-eslint, recommended-type-checked). Format: Prettier.
+- Framework and rendering mode are decided per product (Q11); this section grows with that decision.
 - Package manager: pnpm workspaces (via corepack). No `any` without a comment explaining why.
 - Server code follows ports and adapters: `src/domain`, `src/app`, `src/adapters`, `src/main.ts` (wiring only).
 - Logging via `pino` (JSON).
 
-## Contracts (D-0007, D-0015)
+## Contracts (D-0022)
 See [`contracts/AGENTS.md`](../../contracts/AGENTS.md). Generated code is never edited by hand and is excluded from coverage.
 
 ## Data (D-0008)
@@ -48,7 +50,7 @@ Every deployable implements this ([ARCHITECTURE.md §9](../../ARCHITECTURE.md#9-
 | Correlation | read or generate `X-Request-ID`; propagate it and `traceparent` on HTTP, gRPC and event metadata |
 | Telemetry | OpenTelemetry SDK; export only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set |
 | Image | multi-stage, base pinned by digest, UID 65532, `HEALTHCHECK` on 8081, no shell in Go images |
-| State | stateless; data only in Postgres/Redis |
+| State | stateless; data only in data stores (Postgres) |
 
 ## Naming
 - Env vars: `UPPER_SNAKE`, prefixed by concern (`DB_`, `AUTH_`, `OTEL_`). Required variables are documented in the service README.

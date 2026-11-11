@@ -1,0 +1,100 @@
+# Pull requests into main: repository validation, security scans, then lint, test and image scan of every changed
+# deployable. Every step calls a make target; setup steps only install tools (pinned, ADR-0023).
+name: pr
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/harness/go.mod
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Install pinned tools
+        run: |
+          npm install -g @fission-ai/openspec@1.14.1
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Repository validation
+        run: make check
+      - name: Compose merges
+        run: make compose-config
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/harness/go.mod
+      - name: Secret scan of the git history
+        run: make secrets-scan
+      - name: Vulnerability scan of Go modules
+        run: make vuln
+
+  # Report only: third-party infra images (socket proxy, Postgres, Traefik, Mailpit) are scanned on every PR, but a
+  # finding does not block the merge (owner decision, infra/README.md Security scans).
+  infra-images:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan infra images (report only)
+        run: |
+          set -eu
+          images=$(make -s infra-images)
+          rc=0
+          for image in $images; do
+            echo "::group::$image"
+            make image-scan IMAGE="$image" || rc=1
+            echo "::endgroup::"
+          done
+          exit $rc
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: list
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: echo "matrix=$(make -s deployables BASE="$BASE")" >> "$GITHUB_OUTPUT"
+
+  deployable:
+    needs: changes
+    if: needs.changes.outputs.matrix != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        path: ${{ fromJSON(needs.changes.outputs.matrix) }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_deployable.yml
+    with:
+      path: ${{ matrix.path }}

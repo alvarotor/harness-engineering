@@ -1,0 +1,51 @@
+# Tag vX.Y.Z on a commit of main: deploy the images already built for that commit to prod.
+# prod is a GitHub Environment with required reviewers, so the owner approves each release.
+# Rollback: re-run this workflow for the previous tag (its images are kept in GHCR by commit SHA).
+name: release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Tag must be vX.Y.Z and point to a commit on main
+        env:
+          TAG: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          if ! printf '%s\n' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "release: tag '$TAG' is not vX.Y.Z" >&2
+            exit 1
+          fi
+          # Fast fail only. The real gate is the tag ruleset and prod approval (infra/README.md, H3).
+          if ! git merge-base --is-ancestor "$SHA" origin/main; then
+            echo "release: $SHA (tag $TAG) is not on main; nothing deployed" >&2
+            exit 1
+          fi
+
+  deploy-prod:
+    needs: verify
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: prod
+      ref: ${{ github.sha }}
+    secrets:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}

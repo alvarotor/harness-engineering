@@ -1,10 +1,10 @@
-# Decision & preference registry: machine-readable project memory (ADR-0001).
-# Every durable decision, preference, constraint or convention gets an entry.
+# Decision & preference registry: CURRENT project memory (ADR-0001). Read this at session start.
+# Superseded entries, resolved questions and the changelog live in history.yaml (not read at session start;
+# the harness merges both files, R-REG-006).
 # - status: proposed | accepted | superseded | deprecated
 # - source: user (stated/approved by owner) | default (agent proposal, not contested)
-# - enforced_by: files that enforce the entry TODAY (validated by tools/harness rule R-REG-004)
+# - enforced_by: files that enforce the entry TODAY (validated by R-REG-004)
 # - planned_enforced_by: enforcement that arrives with later changes (not validated)
-# - superseded_by: required when status is superseded
 # Change accepted entries only through an OpenSpec change (see CONTRIBUTING.md).
 
 version: 1
@@ -30,8 +30,7 @@ decisions:
     status: accepted
     source: user
     adr: docs/adr/0003-containers-compose-k8s-ready.md
-    enforced_by: [docs/standards/engineering.md, infra/AGENTS.md]
-    planned_enforced_by: [infra/compose, templates, "tools/harness: compose rules"]
+    enforced_by: [docs/standards/engineering.md, infra/AGENTS.md, infra/compose, templates/go-service]
 
   - id: D-0004
     title: Go is the default backend language (hexagonal-lite); another language only when its core dependency requires it
@@ -40,38 +39,9 @@ decisions:
     adr: docs/adr/0004-go-hexagonal-lite-backends.md
     scope: services/*
     default_language: go
-    exceptions:
-      - path: services/auth
-        language: typescript
-        reason: Better Auth is TypeScript-only
-    enforced_by: [services/AGENTS.md, docs/standards/engineering.md, tools/harness]
-    planned_enforced_by: [templates/go-service, templates/node-service, "tools/harness: layer import rule"]
-
-  - id: D-0005
-    title: Identity is services/auth (Better Auth, Node 24 + Hono); email magic link only; staff invite-only; JWT/JWKS verified locally
-    status: accepted
-    source: user
-    adr: docs/adr/0005-identity-better-auth.md
-    enforced_by: [docs/standards/security.md, docs/catalog/services.yaml]
-    planned_enforced_by: [services/auth]
-
-  - id: D-0006
-    title: Frontends are Preact + Vite + TS SPAs in static non-root nginx containers with runtime config
-    status: accepted
-    source: user
-    adr: docs/adr/0006-frontends-preact-vite-spa.md
-    scope: apps/*
-    default_language: typescript
-    enforced_by: [apps/AGENTS.md, docs/standards/engineering.md, tools/harness]
-    planned_enforced_by: [templates/ts-spa]
-
-  - id: D-0007
-    title: Protobuf contracts (buf); gRPC for synchronous service-to-service calls; REST edge via Vanguard transcoding; OpenAPI generated
-    status: accepted
-    source: user
-    adr: docs/adr/0007-contracts-proto-connect-rest.md
-    enforced_by: [contracts/AGENTS.md, docs/standards/engineering.md]
-    planned_enforced_by: [contracts/proto/buf.yaml, .github/workflows]
+    exceptions: []
+    enforced_by: [services/AGENTS.md, docs/standards/engineering.md, tools/harness, templates/go-service]
+    planned_enforced_by: ["tools/harness: layer import rule"]
 
   - id: D-0008
     title: One Postgres server per env with one database per service; owner/app roles; explicit expand/contract migrations; backups deferred
@@ -79,47 +49,29 @@ decisions:
     source: user
     adr: docs/adr/0008-postgres-db-per-service.md
     enforced_by: [services/AGENTS.md, docs/standards/engineering.md]
-    planned_enforced_by: [infra/postgres, templates]
+    planned_enforced_by: [infra/postgres/init, "templates/go-service: migrate command"]
 
   - id: D-0009
     title: Traefik is the only exposed container; routes via Compose labels; Docker API only via read-only socket proxy; subdomains; ops port 8081 never routed
     status: accepted
     source: user
     adr: docs/adr/0009-edge-and-network.md
-    enforced_by: [infra/AGENTS.md, docs/standards/security.md]
-    planned_enforced_by: [infra/compose, infra/traefik, "tools/harness: compose rules"]
-
-  - id: D-0010
-    title: One VM per env running Compose; GHCR by digest (owner from github.repository_owner); GitHub Environments secrets; prod needs approval
-    status: accepted
-    source: user
-    adr: docs/adr/0010-deployment-and-secrets.md
-    enforced_by: [infra/AGENTS.md]
-    planned_enforced_by: [.github/workflows, infra/env]
+    enforced_by: [infra/AGENTS.md, docs/standards/security.md, infra/compose, infra/traefik]
 
   - id: D-0011
     title: JSON logs, request/trace correlation across HTTP, gRPC and events; OpenTelemetry enabled by env; local otel-lgtm via profile
     status: accepted
     source: user
     adr: docs/adr/0011-observability.md
-    enforced_by: [docs/standards/engineering.md]
-    planned_enforced_by: [packages/go/platform, templates]
+    enforced_by: [docs/standards/engineering.md, templates/go-service]
+    planned_enforced_by: ["templates/go-service: OpenTelemetry SDK when OTEL_EXPORTER_OTLP_ENDPOINT is set"]
 
   - id: D-0012
     title: Security baseline OWASP ASVS L1; GDPR applicability undetermined until launch country is known
     status: accepted
     source: user
     adr: docs/adr/0012-security-baseline.md
-    enforced_by: [docs/standards/security.md, docs/catalog/services.yaml]
-    planned_enforced_by: [.github/workflows]
-
-  - id: D-0013
-    title: GitHub Actions with reusable, path-filtered workflows; every step is a make target; actions pinned by SHA
-    status: accepted
-    source: user
-    adr: docs/adr/0013-ci-cd-github-actions.md
-    enforced_by: [Makefile]
-    planned_enforced_by: [.github/workflows]
+    enforced_by: [docs/standards/security.md, docs/catalog/services.yaml, .github/workflows]
 
   - id: D-0014
     title: One service per business domain; new entities of an existing domain stay in that service
@@ -129,53 +81,13 @@ decisions:
     enforced_by: [docs/catalog/services.yaml, openspec/config.yaml, services/AGENTS.md]
     planned_enforced_by: [templates]
 
-  - id: D-0015
-    title: Async messaging via Redis pub/sub (at-most-once, loss-tolerable events only) behind Publisher/Subscriber ports
-    status: accepted
-    source: user
-    adr: docs/adr/0015-async-redis-pubsub.md
-    enforced_by: [contracts/AGENTS.md, docs/standards/engineering.md, openspec/config.yaml]
-    planned_enforced_by: [templates/go-service]
-
-  - id: D-0016
-    title: Infrastructure in OpenTofu with provider-neutral capability modules; AWS is the default implementation; encrypted state
-    status: accepted
-    source: user
-    adr: docs/adr/0016-infrastructure-opentofu.md
-    enforced_by: [infra/AGENTS.md]
-    planned_enforced_by: [infra/tofu, .github/workflows]
-
   - id: D-0017
     title: Unit tests for all hand-written code; coverage >= 80% per deployable/library; e2e (Playwright) for user flows when possible
     status: accepted
     source: user
     adr: docs/adr/0017-testing-strategy.md
-    enforced_by: [docs/standards/testing.md, openspec/config.yaml, tools/harness, Makefile]
-    planned_enforced_by: [templates, .github/workflows, "tools/harness: test-file presence rule"]
-
-  - id: D-0018
-    title: scripts/bootstrap.sh is the first step on a new machine and the fix when make doctor fails; mise installs .tool-versions; make or make-proj ensured; Docker checked only
-    status: superseded
-    source: user
-    adr: docs/adr/0018-dev-bootstrap-mise.md
-    enforced_by: [scripts/bootstrap.sh, Makefile, AGENTS.md, CONTRIBUTING.md, tools/harness]
-    superseded_by: D-0019
-
-  - id: D-0019
-    title: Agents propose bootstrap after a failed doctor check and wait for owner approval before running it
-    status: superseded
-    source: user
-    adr: docs/adr/0019-agent-approval-before-bootstrap.md
-    enforced_by: [AGENTS.md, docs/agents/orchestrator.md, CONTRIBUTING.md, docs/standards/agent-tooling.md]
-    superseded_by: D-0020
-
-  - id: D-0020
-    title: Developer bootstrap supports Termux without a private make-proj fallback and preserves the agent approval gate
-    status: superseded
-    source: user
-    adr: docs/adr/0020-developer-bootstrap-termux.md
-    enforced_by: [AGENTS.md, docs/agents/orchestrator.md, docs/standards/agent-tooling.md, docs/adr/README.md, scripts/bootstrap.sh, Makefile, docs/standards/validation.md, tools/harness/internal/bootstrap, CONTRIBUTING.md]
-    superseded_by: D-0021
+    enforced_by: [docs/standards/testing.md, openspec/config.yaml, tools/harness, Makefile, templates/go-service, .github/workflows]
+    planned_enforced_by: ["tools/harness: test-file presence rule"]
 
   - id: D-0021
     title: Developer tools are checked for presence and never installed automatically
@@ -184,10 +96,31 @@ decisions:
     adr: docs/adr/0021-developer-tool-presence-checks.md
     enforced_by: [AGENTS.md, docs/agents/orchestrator.md, docs/agents/devops.md, docs/standards/agent-tooling.md, docs/standards/engineering.md, docs/standards/validation.md, docs/adr/README.md, scripts/bootstrap.sh, Makefile, CONTRIBUTING.md, tools/harness]
 
-preferences:
-  - id: P-0001
-    statement: Product is B2C. Roles are customer, support, admin. Single tenant.
+  - id: D-0022
+    title: Protobuf contracts (buf) and gRPC for synchronous service-to-service calls; browser API style deferred (Q8)
+    status: accepted
     source: user
+    adr: docs/adr/0022-contracts-proto-grpc.md
+    enforced_by: [contracts/AGENTS.md, docs/standards/engineering.md]
+    planned_enforced_by: [contracts/proto/buf.yaml, "tools/harness: buf lint/breaking in make check"]
+
+  - id: D-0023
+    title: Delivery - change/<name> branches into main; pr.yml checks changed deployables; main.yml builds once and deploys dev; tag vX.Y.Z deploys the same digests to prod after owner approval; Compose host over SSH; deploy jobs skip until configured
+    status: accepted
+    source: user
+    adr: docs/adr/0023-delivery-branches-ci-releases.md
+    enforced_by: [CONTRIBUTING.md, infra/AGENTS.md, .github/workflows, infra/compose, infra/deploy]
+
+  - id: D-0024
+    title: Frontends are TypeScript containers with runtime config; framework and rendering mode deferred (Q11)
+    status: accepted
+    source: user
+    adr: docs/adr/0024-frontends-typescript.md
+    scope: apps/*
+    default_language: typescript
+    enforced_by: [apps/AGENTS.md, tools/harness]
+
+preferences:
   - id: P-0002
     statement: Start simple and reversible. Introduce gateway, durable broker, mesh, Kubernetes or cache only on the triggers in ARCHITECTURE.md §13.
     source: user
@@ -201,7 +134,7 @@ preferences:
     statement: Current stage defines the way of working (harness) and a first basic architecture. No product features yet.
     source: user
   - id: P-0006
-    statement: Language/framework choices are defaults; a specific library choice (e.g. Better Auth) may justify an override, recorded as an exception.
+    statement: Language/framework choices are defaults; a specific library choice may justify an override, recorded as an exception.
     source: user
   - id: P-0007
     statement: Agents may install developer tools locally (user space) only after explicit owner approval. If an install needs privileges (sudo), give the owner the exact commands instead.
@@ -209,16 +142,9 @@ preferences:
   - id: P-0008
     statement: "Agent roles are: orchestrator (sequences work, never edits), architect, planner (also archives), implementer, test-engineer, security-reviewer (only for security-sensitive changes), reviewer, documentation, devops."
     source: user
-  - id: P-0009
-    statement: Supported developer OSes are macOS and Linux only (never Windows). The OS-provided GNU-compatible make is used; no custom task runner. make is a documented prerequisite because minimal Linux images and macOS without developer tools may lack it. Without sudo, a user-space copy is installed as make-proj, never as make.
+  - id: P-0010
+    statement: Every role documents its own work in the same step, following the documentation map in docs/agents/README.md. The documentation role only verifies this against the change and fixes descriptive gaps, reporting who missed them.
     source: user
-    status: superseded
-    superseded_by: P-0012
-  - id: P-0011
-    statement: Optional personal AI tooling (codebase graph, MCP servers, search, caveman) is documented in docs/standards/agent-tooling.md and is never required by checks, bootstrap or handoffs. Unpinned tools must be pinned before sharing. Project tools stay in .tool-versions and package.json.
-    source: user
-    status: superseded
-    superseded_by: P-0013
   - id: P-0012
     statement: Supported developer environments are macOS, Linux and Termux for GNU Make and repository commands whose host dependencies are available. Use each environment's package manager or developer tools to obtain GNU Make; do not install a private make-proj fallback. Android support for Docker Compose and every pinned tool is not assumed.
     source: user
@@ -231,84 +157,57 @@ preferences:
     rationale: Avoid unrelated sessions triggering tool checks and reporting setup issues the owner did not ask about.
     enforced_by: [AGENTS.md, docs/agents/orchestrator.md]
     planned_enforced_by: [openspec/specs/agent-roles/spec.md]
-  - id: P-0010
-    statement: Every role documents its own work in the same step, following the documentation map in docs/agents/README.md. The documentation role only verifies this against the change and fixes descriptive gaps, reporting who missed them.
+  - id: P-0015
+    statement: "Work runs in lanes chosen by the orchestrator. S (fix, refactor, docs or tests with no observable behavior change): implementer, then make check; no OpenSpec. M (feature inside an existing service, no new decision): light OpenSpec change (proposal, delta spec, tasks), owner approves, implementer writes code, tests and docs, reviewer also verifies docs. L (new service or deployable, decision, infra, contract break, destructive migration, or any security trigger): the full flow. When in doubt, take the higher lane. Archiving needs no owner approval."
     source: user
+    rationale: Most work is small; running every change through 9 roles and 3 owner gates costs tokens and makes the owner the bottleneck. Risky work keeps every gate.
+    enforced_by: [AGENTS.md, docs/agents/orchestrator.md, docs/agents/README.md, docs/agents/reviewer.md, openspec/specs/agent-roles/spec.md]
+  - id: P-0016
+    statement: This repository is a reusable base for new products. The generic harness (way of working, runtime contract, validation, roles) is the core. Product-specific choices (B2C, user roles, identity provider, slug, initial deployables) are defaults that each new product confirms or replaces in its first session.
+    source: user
+    rationale: The owner bootstraps several products from this base; product choices recorded as accepted decisions would force a decision change in every new product.
+    enforced_by: [docs/standards/new-product.md, docs/decisions/registry.yaml, docs/agents/orchestrator.md, AGENTS.md]
+  - id: P-0017
+    statement: The model used by each agent role is personal OpenCode configuration (agents.<role>.model in the user config), never committed to the repository. Current owner setup is Claude Haiku 5.5 (high) for every role.
+    source: user
+    rationale: Model IDs depend on the provider; committed models would break for other providers and future products.
+    enforced_by: [docs/standards/agent-tooling.md]
+  - id: P-0018
+    statement: Deploys pin SSH host keys. The deploy workflow reads the target's known_hosts lines from the GitHub Environment variable DEPLOY_KNOWN_HOSTS and uses StrictHostKeyChecking=yes; a deploy without it fails instead of trusting a key on first use.
+    source: user
+    rationale: Ephemeral CI runners would otherwise trust whatever key the first connection presents (security review of ci-cd-template).
+    planned_enforced_by: [infra/deploy/deploy.sh, .github/workflows/_deploy.yml, infra/README.md]
 
 assumptions:
   - id: A1
-    statement: Project slug "har"; domains are config (DOMAIN).
+    statement: Project slug "har" (image names har-<name>, proto packages har.<domain>); each product may rename it (docs/standards/new-product.md). Domains are config (DOMAIN).
   - id: A2
     statement: Seconds of downtime per deploy is acceptable in dev and prod initially.
-  - id: A3
-    statement: Staff accounts (support, admin) are invite-only, created by admins.
-  - id: A4
-    statement: Initial deployables are apps/web, apps/admin, services/auth, services/core.
-  - id: A5
-    statement: services/core hosts the first business domain and is renamed once that domain is named.
 
 open_questions:
+  # Deferred choices (P-0016). needed_by is the trigger: before work that reaches it, the orchestrator stops
+  # and asks the owner (docs/standards/new-product.md). The answer becomes a decision; the question moves to history.
+  - id: Q6
+    question: What is the product (domain, users and roles, tenancy, B2B/B2C)?
+    needed_by: before any product feature, service or frontend
   - id: Q3
     question: Email provider and public domain.
-    needed_by: before-dev-deploy
+    needed_by: before the first dev deploy that sends email or needs TLS
   - id: Q4
     question: Launch country (decides GDPR applicability).
-    needed_by: before-prod
-
-resolved_questions:
-  - id: Q1
-    question: GitHub owner for repo and GHCR.
-    resolution: No repo yet; workflows use github.repository_owner, so nothing is hard-coded.
-  - id: Q2
-    question: Prod Postgres backups / managed.
-    resolution: No backups yet (owner). Postgres runs as a container on the env VM. Backups are mandatory before real user data reaches prod.
-  - id: Q5
-    question: Does the OpenAPI generator support google.api.http annotations?
-    resolution: Yes (owner confirmed).
-
-# Corrections log: what changed and why, so future sessions don't reintroduce old choices.
-changelog:
-  - date: 2026-10-15
-    changes:
-      - "Edge proxy: Caddy -> Traefik (owner)."
-      - "Traefik routing via Docker labels + read-only socket proxy (owner, over file-provider recommendation)."
-      - "Async: none/outbox-first -> Redis pub/sub (owner, over RabbitMQ/Streams recommendation; at-most-once accepted)."
-      - "Go reframed as the default backend language with an override rule; services/auth in Node is the first exception."
-      - "Postgres: explicitly one server per env with a database per service; backups deferred."
-      - "Infra: OpenTofu, provider-neutral capability modules, AWS default."
-      - "Testing: >= 80% coverage, unit tests for all code, e2e when possible."
-      - "Service granularity: one service per business domain."
-      - "Auth: passkeys removed; email magic link only for all roles."
-      - "GDPR: out of scope -> undetermined (launch country unknown)."
-  - date: 2026-10-15
-    changes:
-      - "Owner approved Phase 2: D-0001..D-0017 accepted (OpenSpec change bootstrap-dev-harness)."
-      - "Tooling installed in user space: OpenTofu 1.13.1, buf 1.74.0, golangci-lint 2.14.0, Playwright 1.64.1 (P-0007)."
-      - "GNU make 4.4.1 was missing; extracted from the apt package into ~/.local/bin without sudo. Owner may replace it with: sudo apt-get install -y make."
-      - "Harness (bootstrap-dev-harness) implemented: 17 rules, make check passing."
-  - date: 2026-10-15
-    changes:
-      - "Roles 6 -> 9 (owner): added orchestrator and documentation; security review split out of reviewer into security-reviewer (P-0008)."
-      - "GNU Make documented as a prerequisite (P-0009)."
-  - date: 2026-10-15
-    changes:
-      - "Documentation role narrowed (owner): it verifies each role documented its own work and fixes gaps; it no longer owns system-wide docs or archiving (P-0010). Archiving moved to the planner."
-      - "Reviewer no longer checks docs; documentation role does."
-      - "Supported OSes: macOS and Linux only; use the OS make, no custom runner (P-0009). Windows install row removed."
-      - "User-space make copy removed from ~/.local/bin/make (it was being mistaken for the OS make) and reinstalled as ~/.local/bin/make-proj (owner). A user-space copy must never be named make."
-  - date: 2026-10-15
-    changes:
-      - "Added scripts/bootstrap.sh with mise (D-0018, owner). Ran on this machine: mise 2026.10.11 and all 6 pinned tools installed under ~/.local/share/mise; make doctor ok."
-  - date: 2026-10-16
-    changes:
-      - "Optional personal AI tooling documented in docs/standards/agent-tooling.md, never required by checks (P-0011)."
-  - date: 2026-11-05
-    changes:
-      - "D-0019 supersedes D-0018 for agent behavior: propose bootstrap after doctor failure, summarize its actions, and wait for owner approval before running it."
-  - date: 2026-11-09
-    changes:
-      - "D-0020 supersedes D-0019: supports Termux with package-manager GNU Make and no make-proj fallback, while preserving the agent bootstrap approval gate; P-0012 supersedes P-0009."
-      - "D-0021 supersedes D-0020: developer tools are presence-checked without mise, host-tool version pins, or automatic installation; P-0013 supersedes P-0011 and P-0007 now requires explicit approval for local installation."
-  - date: 2026-11-11
-    changes:
-      - "P-0014: run `make doctor` only when the owner explicitly requests a developer-tool check."
+    needed_by: before prod
+  - id: Q7
+    question: Asynchronous messaging (none, Redis pub/sub, Redis Streams, a broker); depends on whether losing an event is acceptable.
+    needed_by: the first event published from one service to another
+  - id: Q8
+    question: How browsers and third parties call APIs (REST transcoding, Connect JSON client, other).
+    needed_by: the first public API
+  - id: Q9
+    question: Hosting and infrastructure as code (cloud provider, OpenTofu module shape, managed Postgres, backups).
+    needed_by: the first deploy to a real dev host
+  - id: Q10
+    question: Identity (login methods, identity provider or library, staff accounts and 2FA).
+    needed_by: the first feature that needs a signed-in user
+  - id: Q11
+    question: Frontend framework and rendering mode (SPA, server-rendered, static); depends on SEO needs.
+    needed_by: the first frontend

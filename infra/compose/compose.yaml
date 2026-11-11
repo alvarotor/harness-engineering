@@ -1,0 +1,108 @@
+# Base stack (ADR-0009, D-0009). The Makefile merges this file with compose.local.yaml (local) or
+# compose.deploy.yaml (host) and with every deployable fragment (services/*/compose.yaml, apps/*/compose.yaml).
+# Paths are relative to the repository root, because every run uses --project-directory .
+# Third-party images are pinned by digest; bump with `docker buildx imagetools inspect <image>`.
+# Runtime secrets are files (never environment values): HAR_SECRETS_DIR holds one file per secret, named after
+# the variable in lower case. Local: infra/env/local/secrets (dev-only). Host: ~/har/secrets (written by deploy).
+# The Docker API is reachable only through the allow-listed socket-proxy (see its comment below).
+name: har
+
+services:
+  traefik:
+    image: traefik:v3.7.18@sha256:9c437ac4f09ce6f4980a8544902d3475fdf70a1a7c578729581d2535dfa7d635
+    # Static file is mounted under another name: Traefik loads /etc/traefik/traefik.yml by itself and ignores flags.
+    command: ["--configFile=/etc/traefik/static.yml"]
+    # Non-root (65532). Binding 80/443 as non-root needs the unprivileged port floor lowered inside the netns.
+    user: "65532:65532"
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=0
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/traefik/traefik.yml:/etc/traefik/static.yml:ro
+    networks: [edge, socket]
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping", "--configFile=/etc/traefik/static.yml"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    restart: unless-stopped
+
+  # Docker API for Traefik behind a path allow-list (ADR-0009, security review round 2 H-R2-1). The stock proxy opened
+  # the whole /containers prefix, so /containers/{id}/archive returned files (the Postgres secret). This proxy
+  # (wollomatic, from-scratch Go image, no shell) allows only what the Traefik docker provider needs:
+  #   GET  _ping, version, events, containers/json, containers/{id}/json, networks[/{id}]   (optional /v<api> prefix)
+  #   HEAD _ping                                                                            (Traefik >= 3.6.1)
+  # Everything else returns 403 (path) or 405 (method). Only this service mounts the socket, read-only.
+  # Runs as 65534 and joins the host docker group (DOCKER_GID) to read the socket.
+  socket-proxy:
+    image: wollomatic/socket-proxy:1.13.2@sha256:ff95d6ff6c27853005ef85eb8f4ab5923dc3d2f1e055f98fb6aeeaceec3fe848
+    user: "65534:65534"
+    group_add: ["${DOCKER_GID:-999}"]
+    command:
+      - "-listenip=0.0.0.0"
+      - "-proxyport=2375"
+      - "-allowfrom=traefik"
+      - "-allowGET=(/v[0-9.]+)?/(_ping|version|events|containers/json|containers/[^/]+/json|networks(/[^/]+)?)"
+      - "-allowHEAD=(/v[0-9.]+)?/_ping"
+      - "-allowhealthcheck"
+      - "-loglevel=info"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [socket]
+    healthcheck:
+      test: ["CMD", "/healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    restart: unless-stopped
+
+  # One server, one database and two roles per service (D-0008). Init scripts: infra/postgres/init/README.md.
+  # The superuser password is read from a file (POSTGRES_PASSWORD_FILE), so `inspect` shows a path, not a value.
+  postgres:
+    image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    # The official entrypoint starts as root to fix the data directory, then drops to the postgres user.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp, /var/run/postgresql]
+    restart: unless-stopped
+
+networks:
+  edge: {}
+  data:
+    internal: true
+  socket:
+    internal: true
+
+volumes:
+  pgdata: {}
+
+secrets:
+  postgres_password:
+    file: ${HAR_SECRETS_DIR:?set HAR_SECRETS_DIR in the env file}/postgres_password

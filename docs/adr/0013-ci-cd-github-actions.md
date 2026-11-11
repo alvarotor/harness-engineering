@@ -1,6 +1,7 @@
 # 0013 GitHub Actions with reusable, path-filtered workflows
 
-- Status: accepted
+- Status: superseded
+- Superseded by: 0023
 - Date: 2026-10-15
 - Source: user (GitHub Actions), default (structure)
 

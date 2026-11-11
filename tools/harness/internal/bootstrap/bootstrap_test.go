@@ -61,7 +61,7 @@ func (e *env) healthy(includeMake bool) {
 	if includeMake {
 		e.fake("make", "")
 	}
-	for _, tool := range []string{"go", "node", "tofu", "buf", "golangci-lint", "openspec", "docker"} {
+	for _, tool := range []string{"go", "node", "buf", "golangci-lint", "openspec", "docker"} {
 		e.fake(tool, "")
 	}
 }
@@ -165,7 +165,7 @@ func TestMissingToolsAreReported(t *testing.T) {
 	e := newEnv(t, "Linux")
 	e.fakeInstallers()
 	out, code := e.run()
-	expect(t, out, code, 1, "missing make", "missing go", "missing node", "missing tofu", "missing buf", "missing golangci-lint", "missing openspec", "missing docker compose")
+	expect(t, out, code, 1, "missing make", "missing go", "missing node", "missing buf", "missing golangci-lint", "missing openspec", "missing docker compose")
 	if strings.Contains(e.calls(), "install") || strings.Contains(e.calls(), "curl") || strings.Contains(e.calls(), "mise") {
 		t.Errorf("bootstrap must not install or download tools:\n%s", e.calls())
 	}
@@ -187,14 +187,20 @@ func TestDoctorChecksPresenceWithoutRunningToolVersions(t *testing.T) {
 	e := newEnv(t, "Linux")
 	e.healthy(true)
 	out, code := e.runDoctor()
-	expect(t, out, code, 0, "ok go", "ok node", "ok tofu", "ok buf", "ok golangci-lint", "ok openspec", "ok docker compose")
-	if strings.Contains(e.calls(), "go ") || strings.Contains(e.calls(), "node ") || strings.Contains(e.calls(), "tofu ") || strings.Contains(e.calls(), "buf ") || strings.Contains(e.calls(), "golangci-lint ") || strings.Contains(e.calls(), "openspec ") {
+	expect(t, out, code, 0, "ok go", "ok node", "ok buf", "ok golangci-lint", "ok openspec", "ok docker compose")
+	if strings.Contains(e.calls(), "go ") || strings.Contains(e.calls(), "node ") || strings.Contains(e.calls(), "buf ") || strings.Contains(e.calls(), "golangci-lint ") || strings.Contains(e.calls(), "openspec ") {
 		t.Errorf("doctor should check command presence without invoking version commands:\n%s", e.calls())
 	}
 }
 
+// Doctor delegates to the bootstrap diagnostic, so the tool list lives in one place.
 func TestDoctorReportsMissingTools(t *testing.T) {
 	e := newEnv(t, "Linux")
+	e.fake("make", "")
+	e.fakeInstallers()
 	out, code := e.runDoctor()
-	expect(t, out, code, 2, "go: missing", "node: missing", "tofu: missing", "buf: missing", "golangci-lint: missing", "openspec: missing", "docker compose: missing")
+	expect(t, out, code, 2, "missing go", "missing node", "missing buf", "missing golangci-lint", "missing openspec", "missing docker compose")
+	if strings.Contains(e.calls(), "apt-get") || strings.Contains(e.calls(), "curl") || strings.Contains(e.calls(), "pkg ") {
+		t.Errorf("doctor must not install or download tools:\n%s", e.calls())
+	}
 }

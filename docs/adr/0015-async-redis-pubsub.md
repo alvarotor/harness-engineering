@@ -1,6 +1,7 @@
 # 0015 Asynchronous messaging via Redis pub/sub
 
-- Status: accepted
+- Status: deprecated
+- Deprecated by: product choices deferred to Q7 (P-0016)
 - Date: 2026-10-15
 - Source: user (chosen over the RabbitMQ / Redis Streams recommendation)
 

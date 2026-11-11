@@ -1,6 +1,7 @@
 # 0007 Protobuf contracts, gRPC for sync calls, REST edge via transcoding
 
-- Status: accepted
+- Status: superseded
+- Superseded by: 0022
 - Date: 2026-10-15
 - Source: user
 

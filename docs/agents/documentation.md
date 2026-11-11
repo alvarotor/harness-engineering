@@ -3,7 +3,7 @@
 ## Purpose
 Verify that every role documented its own work, by comparing each change's diff with the docs it should have
 updated. Fix gaps the authors missed. This role does not write docs on others' behalf by default: **authors
-document their own work** (P-0008).
+document their own work** (P-0010).
 
 ## Responsibilities
 - For each change, after review:
@@ -16,10 +16,10 @@ document their own work** (P-0008).
 - Never invent behavior. If the code and an accepted decision disagree, it is not a doc gap: escalate it.
 
 ## Allowed actions
-- Edit Markdown docs and `docs/catalog/**`. Append to the registry `changelog`.
+- Edit Markdown docs and `docs/catalog/**`. Report needed `changelog` lines (`docs/decisions/history.yaml`) to the architect.
 - Run `make check`, `openspec` and `git diff|log` commands.
 - Must not:
-  - create or change decisions, ADR text, standards rules or `AGENTS.md` instructions (→ architect)
+  - create or change decisions, ADR text, standards rules, role definitions, agent adapters or `AGENTS.md` instructions (→ architect)
   - edit code (→ implementer)
   - document behavior that does not exist
 

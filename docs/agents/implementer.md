@@ -7,6 +7,7 @@ Implement approved OpenSpec tasks with the smallest correct change, including te
 - Work task by task, in order. Mark each task done only after its verification passes.
 - Write unit tests for all new or changed code (coverage ≥ 80 %) and integration tests for adapters.
 - Follow the service layout, runtime contract and contracts rules (`docs/standards/engineering.md`, scoped `AGENTS.md`).
+- Create services only with `make new-service name=<x>`; keep `templates/` and `make template-test` green when changing the template.
 - Update the service README, catalog entry (`planned` → `active`), contracts and migrations as the tasks require, following the [documentation map](README.md#documentation-map).
 - Execute migration and refactoring plans written by the architect.
 

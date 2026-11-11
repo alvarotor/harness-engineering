@@ -1,0 +1,18 @@
+# Local-only additions (make up). Never merged by the deploy overlay.
+services:
+  # Catches mail sent by services in local development. Its UI is routed by Traefik at mail.${DOMAIN}
+  # (mail.localhost). No host ports: SMTP stays on the edge network.
+  mailpit:
+    image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+    networks: [edge]
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.mail.rule: 'Host(`mail.${DOMAIN}`)'
+      traefik.http.routers.mail.entrypoints: web
+      traefik.http.services.mail.loadbalancer.server.port: "8025"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp]
+    user: "65532:65532"
+    restart: unless-stopped
