@@ -3,7 +3,7 @@
 SHELL := bash
 COVERAGE_MIN := 80
 GOLANGCI_CONFIG ?= ../../.golangci.yml
-IMAGE ?= har-__NAME__:local
+IMAGE ?= harness-engineering-__NAME__:local
 # Baked into the image and logged as the version attribute; CI passes the git SHA.
 VERSION ?= dev
 
@@ -20,7 +20,7 @@ lint:
 test:
 	go test -race -coverprofile=coverage.out ./internal/...
 	@set -o pipefail; go tool cover -func=coverage.out | awk -v min=$(COVERAGE_MIN) \
-	  '/^total:/ { sub("%","",$$3); if ($$3+0 < min) { printf "coverage %s%% < %s%% (D-0017)\n", $$3, min; exit 1 } \
+	  '/^total:/ { sub("%","",$$3); if ($$3+0 < min) { printf "coverage %s%% < %s%%\n", $$3, min; exit 1 } \
 	  printf "coverage %s%% (min %s%%)\n", $$3, min }'
 
 build:

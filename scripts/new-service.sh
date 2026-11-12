@@ -53,6 +53,6 @@ echo "created $dest from templates/go-service"
 cat <<EOF
 Next steps:
   1. Add the catalog entry (status: planned) through an approved OpenSpec change (lane L).
-     The first product service needs Q6 answered (docs/standards/new-product.md).
+     The first product service needs Q1 answered (docs/standards/new-product.md).
   2. make -C $dest test
 EOF

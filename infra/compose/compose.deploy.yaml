@@ -1,7 +1,7 @@
-# Deploy overlay, merged on the host after compose.yaml and the deployable fragments (ADR-0023).
+# Deploy overlay, merged on the host after compose.yaml and the deployable fragments.
 # Images come from the release env file (IMAGE_<NAME>=ghcr.io/...@sha256:...). Always run with --no-build.
 # Variables (non-secret, from the release env file): ENV, DOMAIN (routes and HTTPS smoke test), ACME_EMAIL
-# (Let's Encrypt account, required). Runtime secrets are files under HAR_SECRETS_DIR, see compose.yaml.
+# (Let's Encrypt account, required). Runtime secrets are files under HARNESS_ENGINEERING_SECRETS_DIR, see compose.yaml.
 services:
   letsencrypt-init:
     # One-shot: the named volume is created root-owned, and Traefik runs as 65532, so hand the volume over first.
@@ -54,7 +54,7 @@ services:
       - --ping.entryPoint=ping
       - --providers.docker.endpoint=tcp://socket-proxy:2375
       - --providers.docker.exposedByDefault=false
-      - --providers.docker.network=har_edge
+      - --providers.docker.network=harness-engineering_edge
       - --certificatesResolvers.le.acme.email=${ACME_EMAIL:?set ACME_EMAIL in the release env file}
       - --certificatesResolvers.le.acme.storage=/letsencrypt/acme.json
       - --certificatesResolvers.le.acme.httpChallenge.entryPoint=web

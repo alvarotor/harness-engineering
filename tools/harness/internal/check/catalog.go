@@ -67,7 +67,7 @@ func checkCatalogSchema(r *Repo) []Violation {
 			bad(d.Name, "owner and language are required")
 		}
 		if d.Kind == "service" && d.Domain == "" {
-			bad(d.Name, "services must name their business domain (D-0014)")
+			bad(d.Name, "services must name their business domain")
 		}
 		if d.PersonalData == nil {
 			bad(d.Name, "personal_data is required (use [] if none)")
@@ -76,24 +76,31 @@ func checkCatalogSchema(r *Repo) []Violation {
 	return out
 }
 
+// builtinLanguage is the default language per scope when no registry decision with that scope exists.
+var builtinLanguage = map[string]string{"services/*": "go", "apps/*": "typescript"}
+
 func checkLanguages(r *Repo) []Violation {
 	if r.Catalog == nil || r.Registry == nil {
 		return nil
 	}
 	var out []Violation
 	for _, d := range r.Catalog.Deployables {
-		dec := scopeDecision(r.Registry, kindDir[d.Kind]+"/*")
-		if dec == nil || d.Language == dec.DefaultLanguage {
+		scope := kindDir[d.Kind] + "/*"
+		def, source, fix, exceptions := builtinLanguage[scope], "the built-in default", "record a decision with scope "+scope+" and an exception (path, language, reason)", []Exception(nil)
+		if dec := scopeDecision(r.Registry, scope); dec != nil {
+			def, source, fix, exceptions = dec.DefaultLanguage, dec.ID, "add an exception (path, language, reason) to "+dec.ID, dec.Exceptions
+		}
+		if def == "" || d.Language == def {
 			continue
 		}
 		allowed := false
-		for _, e := range dec.Exceptions {
+		for _, e := range exceptions {
 			allowed = allowed || (e.Path == d.Path && e.Language == d.Language)
 		}
 		if !allowed {
 			out = append(out, Violation{"R-CAT-002", d.Path,
-				fmt.Sprintf("language %q is not the default %q of %s and has no exception", d.Language, dec.DefaultLanguage, dec.ID),
-				fmt.Sprintf("use %s, or add an exception (path, language, reason) to %s through an approved change", dec.DefaultLanguage, dec.ID)})
+				fmt.Sprintf("language %q is not the default %q of %s and has no exception", d.Language, def, source),
+				fmt.Sprintf("use %s, or %s through an approved change", def, fix)})
 		}
 	}
 	return out

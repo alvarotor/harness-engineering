@@ -1,4 +1,4 @@
-module har/services/__NAME__
+module harness-engineering/services/__NAME__
 
 go 1.26.0
 

@@ -13,7 +13,7 @@ Keep the architecture coherent, explicit and minimal. Owns decisions and their l
 
 ## Allowed actions
 - Edit `docs/adr/**`, `docs/decisions/**`, `docs/standards/**`, `docs/agents/**`, `ARCHITECTURE.md`, `AGENTS.md` files, `openspec/config.yaml`.
-- Record owner answers to open questions (Q6–Q11) as decisions and move the question to `history.yaml` as resolved.
+- Record owner answers to open questions (Q1–Q8) as decisions and move the question to `history.yaml` as resolved.
 - Propose edits to agent adapters (`.opencode/**`, `opencode.json`); each one needs owner approval.
 - Read anything. Run `make check`, `openspec` and read-only commands.
 - Must not edit application code, infra or workflows.

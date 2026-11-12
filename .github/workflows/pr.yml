@@ -1,5 +1,5 @@
 # Pull requests into main: repository validation, security scans, then lint, test and image scan of every changed
-# deployable. Every step calls a make target; setup steps only install tools (pinned, ADR-0023).
+# deployable. Every step calls a make target; setup steps only install tools (pinned).
 name: pr
 
 on:

@@ -15,12 +15,7 @@ owner's responsibility.
 #### Scenario: A developer tool is missing
 - **WHEN** `make doctor` or bootstrap reports a missing command
 - **THEN** the agent lists the command, gives installation guidance, offers to install it, and waits
-  for explicit owner approval
-
-#### Scenario: Doctor reports missing tools
-- **WHEN** an explicitly requested `make doctor` check fails because a required command is missing
-- **THEN** the agent summarizes the missing commands and installation guidance, offers to install
-  them, and waits for explicit owner approval without running an installer
+  for explicit owner approval without running an installer
 
 #### Scenario: The owner has not approved an installation
 - **WHEN** the owner asks to run checks or diagnostic bootstrap but has not approved installing a
@@ -29,19 +24,11 @@ owner's responsibility.
 
 #### Scenario: The owner explicitly approves installation
 - **WHEN** the owner approves installing a named missing tool
-- **THEN** the agent may run only the approved installation action and then report the result
+- **THEN** the agent may run only the approved installation action and then report the result; running diagnostic
+  bootstrap remains non-installing
 
-#### Scenario: Owner approves bootstrap
-- **WHEN** the owner explicitly asks to install a named missing tool
-- **THEN** the agent may run only that installation action; running diagnostic bootstrap remains
-  non-installing
-
-#### Scenario: An installation requires elevated privileges
-- **WHEN** the required installation command needs `sudo` or equivalent privilege
-- **THEN** the agent gives the exact command to the owner and does not run it
-
-#### Scenario: Bootstrap reports a separate owner action
-- **WHEN** bootstrap reports an action requiring `sudo` or asks the owner to start Docker
+#### Scenario: An owner action is required
+- **WHEN** the installation needs `sudo` or equivalent privilege, or bootstrap asks the owner to start Docker
 - **THEN** the agent gives the owner the exact action or command and does not perform it
 
 ### Requirement: Developer-tool checks run only when requested
@@ -75,7 +62,7 @@ The harness SHALL define exactly these roles: orchestrator, architect, planner, 
 - **THEN** repository validation fails and asks for a decision change or a merge into an existing role
 
 ### Requirement: Orchestrated order of work
-The orchestrator SHALL classify every request into lane S (no observable behavior change), M (feature inside an existing service, no new decision) or L (new service, decision, infrastructure or CI, contract break, destructive migration, or security trigger), choosing the higher lane when in doubt. The orchestrator MUST NOT edit files, and MUST reject a handoff that lacks evidence of the checks it claims.
+The orchestrator SHALL classify every request into one of the lanes defined in `AGENTS.md` §6 (S, M or L), choosing the higher lane when in doubt, and SHALL run that lane's steps in the order of the flow in `docs/agents/README.md`. The orchestrator MUST NOT edit files, and MUST reject a handoff that lacks evidence of the checks it claims.
 
 #### Scenario: Handoff without evidence
 - **WHEN** a role hands off claiming checks passed without including the commands and their output
@@ -152,7 +139,7 @@ Adapter permissions MUST enforce each role's write boundary for every tool that 
 - **THEN** the orchestrator is the active agent
 
 ### Requirement: Human approval gates
-Agents SHALL stop and request owner approval before: starting implementation of a lane M or L change, accepting or superseding a decision, adding a dependency on a new infrastructure component or external service, changing security-sensitive behavior, deploying to production, running destructive data migrations, or lowering a quality gate. Archiving a reviewed change SHALL NOT require owner approval.
+Agents SHALL stop and request owner approval before every gated item listed in `AGENTS.md` §7 (the single list of owner gates). Archiving a reviewed change SHALL NOT require owner approval.
 
 #### Scenario: Implementer needs a new infrastructure component
 - **WHEN** an implementer finds a task requires an infrastructure component not covered by an accepted decision

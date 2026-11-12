@@ -39,24 +39,9 @@ The validation tooling SHALL itself have unit tests for every rule and line cove
 - **WHEN** the validation tool's test coverage falls below 80 %
 - **THEN** the coverage check fails and reports the measured value
 
-### Requirement: One-command machine bootstrap
-The repository SHALL provide one executable script that prepares a supported machine (macOS or Linux) from only git and curl: it ensures a make program, installs the pinned tool versions without administrator rights, checks the container runtime, and runs the tool check. It MUST verify the integrity of any binary it downloads, MUST NOT install anything needing administrator rights without an interactive user, and MUST be safe to re-run.
-
-#### Scenario: Fresh machine
-- **WHEN** the script runs on a supported machine with only git and curl
-- **THEN** it installs the pinned tools and reports ready, or lists every remaining problem with its fix and exits non-zero
-
-#### Scenario: Tool check fails later
-- **WHEN** the tool check reports a mismatch
-- **THEN** it tells the user to run the bootstrap script
-
-#### Scenario: Tampered download
-- **WHEN** a downloaded binary does not match its pinned checksum
-- **THEN** it is not installed and the problem is reported
-
-#### Scenario: Unsupported OS
-- **WHEN** the script runs on an OS other than macOS or Linux
-- **THEN** it exits non-zero and states the supported OSes
+### Requirement: Bootstrap script stays executable
+Repository validation SHALL fail when the diagnostic bootstrap script is missing or not executable. What the script
+does is specified in the developer-bootstrap capability.
 
 #### Scenario: Not executable
 - **WHEN** the bootstrap script loses its executable permission

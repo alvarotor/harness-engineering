@@ -297,7 +297,7 @@ func TestDeploy_StagesSecretsAsOwnerOnlyFiles(t *testing.T) {
 	}
 
 	envFile := b[".env"].content
-	if !strings.Contains(envFile, "HAR_SECRETS_DIR=./secrets") || !strings.Contains(envFile, "ENV=dev") {
+	if !strings.Contains(envFile, "HARNESS_ENGINEERING_SECRETS_DIR=./secrets") || !strings.Contains(envFile, "ENV=dev") {
 		t.Errorf(".env = %q, want release values and the secrets folder", envFile)
 	}
 	for _, leaked := range []string{secretVal, "POSTGRES_PASSWORD", "AUTH_KEY"} {

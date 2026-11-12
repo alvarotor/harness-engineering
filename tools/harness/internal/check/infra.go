@@ -71,7 +71,7 @@ func checkComposePorts(r *Repo) []Violation {
 		}
 		for _, name := range slices.Sorted(maps.Keys(cf.services)) {
 			if name != "traefik" && publishes(cf.services[name]) {
-				out = append(out, Violation{"R-COMPOSE-001", cf.path, fmt.Sprintf("service %q publishes host ports; only traefik may", name), "remove ports and route through Traefik (D-0009)"})
+				out = append(out, Violation{"R-COMPOSE-001", cf.path, fmt.Sprintf("service %q publishes host ports; only traefik may", name), "remove ports and route through Traefik"})
 			}
 		}
 	}
@@ -362,7 +362,7 @@ func checkActionPins(r *Repo) []Violation {
 			if strings.HasPrefix(uses, "./") || strings.HasPrefix(uses, "docker://") || fullSHARe.MatchString(uses) {
 				return
 			}
-			out = append(out, Violation{"R-CI-001", w.path, fmt.Sprintf("uses %q is not pinned to a full commit SHA", uses), "pin it to the 40-character commit SHA and keep the tag in a comment (D-0023)"})
+			out = append(out, Violation{"R-CI-001", w.path, fmt.Sprintf("uses %q is not pinned to a full commit SHA", uses), "pin it to the 40-character commit SHA and keep the tag in a comment"})
 		})
 	}
 	return out

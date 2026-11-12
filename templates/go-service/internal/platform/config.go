@@ -1,4 +1,4 @@
-// Package platform implements the runtime contract every deployable follows (docs/standards/engineering.md#runtime-contract).
+// Package platform implements the runtime contract every deployable follows (ARCHITECTURE.md §8, §9).
 package platform
 
 import (

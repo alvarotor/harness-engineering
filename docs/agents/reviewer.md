@@ -13,7 +13,7 @@ Security has its own role ([security-reviewer](security-reviewer.md)). Documenta
   - It follows the layering and contract rules.
   - Tests are meaningful, not just there for coverage.
   - Accepted ADR text is untouched.
-- **Docs pass:** lane M only (P-0015). Check the diff against the [documentation map](README.md#documentation-map) and list missing docs as findings. In lane L the documentation role does this after review.
+- **Docs pass:** lane M only. Check the diff against the [documentation map](README.md#documentation-map) and list missing docs as findings. In lane L the documentation role does this after review.
 - **Security sanity:**
   - Confirm the orchestrator's security-trigger decision and lane.
   - If a security-sensitive change skipped security review, or a lane S/M change touches a lane-L path or topic, the verdict is `changes requested`.
@@ -42,4 +42,4 @@ A review report:
 - An accepted decision was edited in place.
 
 ## Human approval
-The reviewer's approval is never sufficient alone for gated items (security-sensitive, prod, new infrastructure, destructive migrations). The owner approves those.
+The reviewer's approval is never sufficient alone for gated items ([`AGENTS.md` §7](../../AGENTS.md#7-roles-and-approvals)). The owner approves those.

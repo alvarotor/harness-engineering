@@ -1,4 +1,4 @@
-# Static configuration for Traefik (ADR-0009), mounted as /etc/traefik/static.yml. Routes come from Compose
+# Static configuration for Traefik, mounted as /etc/traefik/static.yml. Routes come from Compose
 # labels only. infra/compose/compose.deploy.yaml repeats these settings as flags and adds websecure, ACME and
 # the HTTP→HTTPS redirect: keep both in sync.
 log:
@@ -37,4 +37,4 @@ providers:
   docker:
     endpoint: tcp://socket-proxy:2375
     exposedByDefault: false
-    network: har_edge
+    network: harness-engineering_edge

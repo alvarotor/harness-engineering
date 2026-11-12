@@ -1,7 +1,7 @@
 # Service catalog: every deployable, its owner, data and dependencies (validated by R-CAT-*).
 # status: planned (approved, no code yet) | active (code exists) | deprecated
-# personal_data: inventory of personal data stored (D-0012). Keep it current; it decides GDPR effort later.
-# Empty until the product is chosen (Q6). Add entries through the OpenSpec change that approves the deployable.
+# personal_data: inventory of personal data stored. Keep it current; it decides GDPR effort later.
+# Empty until the product is chosen (Q1). Add entries through the OpenSpec change that approves the deployable.
 
 version: 1
 

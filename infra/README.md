@@ -1,8 +1,7 @@
 # Infrastructure
 
 Compose stack, Traefik and Postgres configuration, the deploy script and the delivery workflows
-([ADR-0023](../docs/adr/0023-delivery-branches-ci-releases.md), [ADR-0009](../docs/adr/0009-edge-and-network.md),
-P-0018). Rules for agents: [`infra/AGENTS.md`](AGENTS.md).
+([`ARCHITECTURE.md` §6–§7](../ARCHITECTURE.md#6-delivery-and-environments)). Rules for agents: [`infra/AGENTS.md`](AGENTS.md).
 
 ## Run locally
 
@@ -72,17 +71,17 @@ keep it correct:
   flags. Change both when you change one.
 - **Never mount a file at `/etc/traefik/traefik.yml`.** Traefik loads that path automatically and then ignores flags.
 
-Deny by default (security review L3): `global.aliasHeadersStrategy: reject` rejects a request with a header that
+Deny by default: `global.aliasHeadersStrategy: reject` rejects a request with a header that
 aliases another (`X.Auth.User`, `X_Auth_User`) with 400, and `encodedCharacters` rejects encoded `/`, `\`, NUL, `;`,
 `%`, `?` and `#` in the path, also with 400. A product that needs one of these needs an owner decision and a
-change to both files. Access-log fields are not restricted yet (L14): do this before the first public route.
+change to both files. Access-log fields are not restricted yet: do this before the first public route.
 
-Postgres init scripts (one database and two roles per service, D-0008) are in [`postgres/init/`](postgres/init/README.md).
+Postgres init scripts (one database and two roles per service) are in [`postgres/init/`](postgres/init/README.md).
 
 ### Docker API (socket proxy)
 
 Traefik's docker provider needs the Docker API. The stock Tecnativa proxy opened the whole `/containers` prefix, so
-`GET /containers/<id>/archive` returned files, including the Postgres secret file (security review round 2, H-R2-1).
+`GET /containers/<id>/archive` returned files, including the Postgres secret file.
 The socket proxy now is `wollomatic/socket-proxy` with an anchored regex allow-list ([`compose.yaml`](compose/compose.yaml)):
 
 | Method | Allowed paths (optional `/v<api>` prefix) | Denied |
@@ -101,8 +100,8 @@ Test it (the probe matrix ran against the stack from inside `traefik`, the allow
 paths and 403 or 405 for the rest; the archive response body must be empty:
 
 ```sh
-docker exec har-traefik-1 sh -c "timeout 5 wget -S -O /dev/null http://socket-proxy:2375/containers/<pg-id>/archive?path=/run/secrets/postgres_password"   # 403
-docker exec har-traefik-1 sh -c "timeout 5 wget -S -O /dev/null http://socket-proxy:2375/containers/json"                                              # 200
+docker exec harness-engineering-traefik-1 sh -c "timeout 5 wget -S -O /dev/null http://socket-proxy:2375/containers/<pg-id>/archive?path=/run/secrets/postgres_password"   # 403
+docker exec harness-engineering-traefik-1 sh -c "timeout 5 wget -S -O /dev/null http://socket-proxy:2375/containers/json"                                              # 200
 ```
 
 Traefik's own discovery is the functional test: `http://mail.localhost/` returns 200, so the routes were discovered.
@@ -110,43 +109,43 @@ Traefik's own discovery is the functional test: `http://mail.localhost/` returns
 ### Encoded characters and dots
 
 Traefik's `encodedCharacters` options cover `/`, `\`, NUL, `;`, `%`, `?` and `#` (denied above). They do not cover the
-encoded dot. `%2e` is not denied: a request for `/%2e%2e/x` reaches the backend (verified, security review L-R2-4).
+encoded dot. `%2e` is not denied: a request for `/%2e%2e/x` reaches the backend (verified).
 Traefik's `sanitizePath` removes raw `/../` only. No static option denies encoded dots, so this is a known limit: every
 backend must normalise and reject `..` after decoding. Add a middleware (owner decision) if a product needs more.
 
 ## Secrets
 
-Runtime secrets are **files, never environment variables** (security review M3): `docker inspect` and the Docker API
-then show a path, not a value. The Compose files read them from `HAR_SECRETS_DIR` (set in the env file):
+Runtime secrets are **files, never environment variables**: `docker inspect` and the Docker API
+then show a path, not a value. The Compose files read them from `HARNESS_ENGINEERING_SECRETS_DIR` (set in the env file):
 
-- Local: `HAR_SECRETS_DIR=./infra/env/local/secrets` (dev-only values, committed on purpose: dev-only exception, see
+- Local: `HARNESS_ENGINEERING_SECRETS_DIR=./infra/env/local/secrets` (dev-only values, committed on purpose: dev-only exception, see
   docs/standards/security.md accepted risks).
-- Host: `HAR_SECRETS_DIR=./secrets` (`~/har/secrets`, written by the deploy with mode `0600`; folder `0700`).
+- Host: `HARNESS_ENGINEERING_SECRETS_DIR=./secrets` (`~/harness-engineering/secrets`, written by the deploy with mode `0600`; folder `0700`).
 
 Each secret is one file named after its variable in lower case: `POSTGRES_PASSWORD` becomes `secrets/postgres_password`.
 Services read them with the `<NAME>_FILE` convention (`templates/go-service` supports it). Non-secret values and image
-digests stay in the env file. Committing a real secret is a stop-the-line incident (D-0009): rotate it, then purge it.
+digests stay in the env file. Committing a real secret is a stop-the-line incident: rotate it, then purge it.
 
 ## Deploy
 
 Environments: `dev` (automatic on merge to `main`) and `prod` (a `vX.Y.Z` tag on a `main` commit, after owner
 approval). Each is one Linux host running Docker Compose, reached over SSH. Hosts are not provisioned by this
-repository yet (Q9).
+repository yet (Q6).
 
 What `make deploy` does ([`deploy/deploy.sh`](deploy/deploy.sh)):
 
-1. Checks the environment name and that `KNOWN_HOSTS` has an entry for `HOST`. Without it the deploy stops (P-0018).
+1. Checks the environment name and that `KNOWN_HOSTS` has an entry for `HOST`. Without it the deploy stops.
 2. Turns the secrets file into `0600` files in a temporary folder. Values never reach a log; errors name a line number.
 3. Archives `infra/compose`, `infra/traefik`, `infra/postgres`, `infra/env/<env>` and every deployable fragment, plus the
-   env file (as `.env`, with `HAR_SECRETS_DIR=./secrets`) and the secret files. A failed archive stops the deploy.
+   env file (as `.env`, with `HARNESS_ENGINEERING_SECRETS_DIR=./secrets`) and the secret files. A failed archive stops the deploy.
 4. Sends the archive over SSH with `StrictHostKeyChecking=yes`, `UserKnownHostsFile` set to the pinned file and
-   `GlobalKnownHostsFile=/dev/null`. On the host, `~/har` is `755`, `.env` and `secrets/` keep their modes.
+   `GlobalKnownHostsFile=/dev/null`. On the host, `~/harness-engineering` is `755`, `.env` and `secrets/` keep their modes.
 5. `docker compose ... pull --ignore-buildable`, then `up -d --no-build --remove-orphans --wait`. Migrations go between
    these two steps once a service has a database (commented in the script).
 6. Fails unless every service is running and healthy, and the one-shot `letsencrypt-init` exited with 0. If `DOMAIN`
    is set, requires `https://$DOMAIN/` to answer below 500.
 
-The images are the ones `main.yml` built for the commit (tag = commit SHA, pushed to `ghcr.io/<owner>/har-<name>`).
+The images are the ones `main.yml` built for the commit (tag = commit SHA, pushed to `ghcr.io/<owner>/harness-engineering-<name>`).
 The release env file holds `IMAGE_<NAME>=ghcr.io/...@sha256:...` (`<NAME>` in upper case with `_`, for example
 `IMAGE_ORDERS_API`), `ENV`, `DOMAIN` and `ACME_EMAIL`. If an image for the commit is missing, or has no digest,
 the deploy fails: `main` has not built that commit.
@@ -154,7 +153,7 @@ the deploy fails: `main` has not built that commit.
 Run a deploy by hand only from a checkout of the commit, with files you created yourself:
 `make deploy ENV=dev HOST=<host> SSH_USER=<user> ENV_FILE=<file> SECRETS_FILE=<file> KNOWN_HOSTS=<file> [SSH_KEY=<file>]`.
 
-### Recording the host key (P-0018, owner)
+### Recording the host key (owner)
 
 The deploy never trusts a key on first use. Record the key once per host, after checking its fingerprint out of band:
 
@@ -172,13 +171,13 @@ purpose.
 
 ### GitHub setup checklist (owner, once, before any secret is stored)
 
-Nothing here is configured yet. Until `DEPLOY_HOST` exists, the deploy job skips itself and succeeds. The H2/H3 rules
+Nothing here is configured yet. Until `DEPLOY_HOST` exists, the deploy job skips itself and succeeds. The rules
 below are settings only GitHub can enforce; the workflows cannot check them.
 
 1. **Environment `dev`:** deployment branches = **`main` only**. No required reviewers.
 2. **Environment `prod`:** **required reviewers = the owner**, deployment branches/tags = **tags `v*.*.*` only**.
    An unconfigured `prod` still shows the approval prompt before the step-level skip, so the owner approves
-   a release even when no host is set yet (decision M4).
+   a release even when no host is set yet.
 3. Variables per environment: `DEPLOY_HOST` (empty = deploy skipped), `DEPLOY_USER`, `DEPLOY_KNOWN_HOSTS` (see the
    host-key procedure above), `DOMAIN`, `ACME_EMAIL`.
 4. Secrets per environment: `DEPLOY_SSH_KEY` (private key of `DEPLOY_USER`, no passphrase) and `DEPLOY_ENV_FILE`
@@ -209,7 +208,7 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 
 Re-run the release of the previous tag: GitHub → Actions → `release` → the run for the previous `vX.Y.Z` → **Re-run
 all jobs**, then approve `prod`. Its images stay in GHCR under their commit SHA, so no rebuild happens. Rollback
-changes only images: migrations must be backward compatible (expand/contract, ADR-0008).
+changes only images: migrations must be backward compatible (expand/contract).
 
 ## CI workflows
 
@@ -229,7 +228,7 @@ never get `packages: write`. Top-level `permissions: {}` in the reusable files g
 Every action is pinned by commit SHA (R-CI-001). No step interpolates `${{ }}` inside `run:`; values reach the
 shell through `env:` (R-CI-002).
 
-### Security scans (M6)
+### Security scans
 
 Run in CI, and locally with the same targets. Images are pinned by digest.
 
@@ -253,22 +252,22 @@ while the local toolchain is 1.26.0; upgrading the toolchain clears it. `make im
 
 ## Known limits
 
-- Traefik access logs include the default fields (L14). Restrict them before a public route exists.
-- HSTS and security headers (M8) are not configured: no public route exists yet.
-- Smoke test accepts any status below 500 (L2). Tighten with a health path when public routes exist.
+- Traefik access logs include the default fields. Restrict them before a public route exists.
+- HSTS and security headers are not configured: no public route exists yet.
+- Smoke test accepts any status below 500. Tighten with a health path when public routes exist.
 - Encoded dots (`%2e`) are not denied by Traefik (see Encoded characters and dots).
-- `main.yml` builds every deployable on each merge. Its `shortcut:` comment and ADR-0023 describe when to change it.
+- `main.yml` builds every deployable on each merge. Its `shortcut:` comment and ARCHITECTURE.md §11 describe when to change it.
 
 ### Residual risk (for `docs/standards/security.md`)
 
-- **Docker API read access (M3, reduced by the allow-list):** the proxy allows only the paths in the Docker API section.
+- **Docker API read access (reduced by the allow-list):** the proxy allows only the paths in the Docker API section.
   A compromised Traefik can still read container configuration (`containers/{id}/json`) and events. Secrets are files,
   and no secret goes into an environment value or label. Logs, archive and export are denied.
-- **Root on the deploy host (M7, accepted):** `DEPLOY_USER` is in the `docker` group, which is root on the host. A
+- **Root on the deploy host (accepted):** `DEPLOY_USER` is in the `docker` group, which is root on the host. A
   leaked `DEPLOY_SSH_KEY` gives host root. Mitigated by a dedicated host, a key that exists only in `prod`/`dev`
   environments, and reviewers on `prod`.
-- **Unpinned transitive npm install (M5, accepted by owner):** `openspec@1.14.1` is installed without a lockfile.
+- **Unpinned transitive npm install (accepted by owner):** `openspec@1.14.1` is installed without a lockfile.
 - **Infra image CVEs (owner accepted):** reported in CI by the `infra-images` job, not gated (see Security scans above).
-- **Traefik encoded dots (L-R2-4, owner decision):** `%2e` is not denied (see Encoded characters and dots).
+- **Traefik encoded dots (owner decision):** `%2e` is not denied (see Encoded characters and dots).
 - **No image signing or provenance:** a compromised GHCR push is trusted by digest.
-- **`:ro` on the socket is not a control (L10):** only `POST=0` and the proxy's path rules restrict the Docker API.
+- **`:ro` on the socket is not a control:** only `POST=0` and the proxy's path rules restrict the Docker API.

@@ -1,9 +1,9 @@
 # Definition of Done
 
-A change is done only when **every applicable item** holds and was **verified by running it** (P-0004).
+A change is done only when **every applicable item** holds and was **verified by running it**.
 
 ## Always
-- [ ] An OpenSpec change exists, was approved, and all its tasks are checked (lanes M and L; lane S needs none, P-0015).
+- [ ] An OpenSpec change exists, was approved, and all its tasks are checked (lanes M and L; lane S needs none).
 - [ ] `make check` passes locally.
 - [ ] No conflict with registry decisions, or the conflict was resolved through a decision change.
 - [ ] New or changed preferences and decisions are persisted (registry, ADR, standards, AGENTS.md, templates, harness).
@@ -27,8 +27,8 @@ A change is done only when **every applicable item** holds and was **verified by
 
 ## Deployable / infra
 - [ ] Image builds, runs non-root, and its health check passes; Trivy shows no fixable HIGH/CRITICAL.
-- [ ] Compose config validates (`make compose-config`); IaC `validate`/`plan` is clean once IaC exists (Q9).
-- [ ] Owner approval for gated items (security-sensitive, prod, new infra, destructive migration).
+- [ ] Compose config validates (`make compose-config`); IaC `validate`/`plan` is clean once IaC exists (Q6).
+- [ ] Owner approval for gated items ([`AGENTS.md` §7](../../AGENTS.md#7-roles-and-approvals)).
 
 ## Review
 - [ ] Security-reviewer report, if a [security trigger](security.md#security-review-triggers) matched. Findings resolved or accepted by the owner.

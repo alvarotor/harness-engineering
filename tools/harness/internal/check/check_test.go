@@ -438,7 +438,7 @@ func TestBrokenInputsDoNotCascade(t *testing.T) {
 	_, vs := Run(root)
 	for _, v := range vs {
 		switch v.Rule {
-		case "R-STRUCT-001", "R-REG-001", "R-CAT-001", "R-DOC-001": // DOC-001: AGENTS.md links to the removed ARCHITECTURE.md
+		case "R-STRUCT-001", "R-REG-001", "R-CAT-001", "R-DOC-001": // DOC-001: AGENTS.md links to the missing ARCHITECTURE.md
 		default:
 			t.Errorf("unexpected cascading violation: %s", v)
 		}
@@ -450,5 +450,26 @@ func TestMarkdownLinks(t *testing.T) {
 	want := []string{"x.md", "z.md"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// Without a scope decision the built-in defaults apply: services go, apps typescript, no exceptions.
+func TestLanguageBuiltinDefaults(t *testing.T) {
+	r := validRepo(t)
+	replace(t, r, registryPath, "scope: services/*", "scope: none")
+	replace(t, r, registryPath, "scope: apps/*", "scope: none")
+	_, vs := Run(r)
+	var got []string
+	for _, v := range vs {
+		if v.Rule == "R-CAT-002" {
+			got = append(got, v.Path)
+			if !strings.Contains(v.Problem, "built-in default") {
+				t.Errorf("problem %q does not name the built-in default", v.Problem)
+			}
+		}
+	}
+	// services/core (go) and apps/web (typescript) pass; services/auth (typescript) loses its exception.
+	if len(got) != 1 || got[0] != "services/auth" {
+		t.Fatalf("R-CAT-002 paths = %v, want [services/auth]", got)
 	}
 }

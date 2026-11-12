@@ -18,10 +18,6 @@ private executable named `make-proj`.
 - **WHEN** bootstrap runs on macOS or Linux and `make` is unavailable
 - **THEN** it reports the appropriate OS installation action and does not install or invoke a package manager
 
-#### Scenario: Make is missing in Termux
-- **WHEN** bootstrap runs in Termux and `make` is unavailable
-- **THEN** it reports `pkg install make` for the owner without invoking `pkg`
-
 ### Requirement: Termux host detection and Make setup
 Bootstrap MUST identify Termux before generic Linux and MUST report Termux package guidance when
 Make is missing, without invoking `pkg`.
@@ -35,12 +31,12 @@ Make is missing, without invoking `pkg`.
 - **THEN** bootstrap follows the Termux path and does not use generic Linux package-manager guidance
 
 ### Requirement: Use the OS Make executable
-Repository instructions and bootstrap verification MUST use `make` directly and MUST NOT require
-`mise` or `make-proj` as an alternative command.
+Repository instructions and bootstrap verification MUST use the operating system's `make` directly and MUST NOT
+require a wrapper, a version manager or a private copy of Make.
 
 #### Scenario: Agent checks repository tooling
-- **WHEN** an agent follows repository tool-check instructions and `mise` is absent
-- **THEN** it runs `make doctor`, which checks required commands directly without invoking mise
+- **WHEN** an agent follows the repository tool-check instructions
+- **THEN** it runs `make doctor`, which checks the required commands directly with the OS `make`
 
 ### Requirement: Presence-only developer tool checks
 `make doctor` MUST check whether each documented developer-tool command exists on `PATH` and MUST

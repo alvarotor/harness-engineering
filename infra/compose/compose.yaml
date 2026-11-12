@@ -1,11 +1,11 @@
-# Base stack (ADR-0009, D-0009). The Makefile merges this file with compose.local.yaml (local) or
+# Base stack. The Makefile merges this file with compose.local.yaml (local) or
 # compose.deploy.yaml (host) and with every deployable fragment (services/*/compose.yaml, apps/*/compose.yaml).
 # Paths are relative to the repository root, because every run uses --project-directory .
 # Third-party images are pinned by digest; bump with `docker buildx imagetools inspect <image>`.
-# Runtime secrets are files (never environment values): HAR_SECRETS_DIR holds one file per secret, named after
-# the variable in lower case. Local: infra/env/local/secrets (dev-only). Host: ~/har/secrets (written by deploy).
+# Runtime secrets are files (never environment values): HARNESS_ENGINEERING_SECRETS_DIR holds one file per secret, named after
+# the variable in lower case. Local: infra/env/local/secrets (dev-only). Host: ~/harness-engineering/secrets (written by deploy).
 # The Docker API is reachable only through the allow-listed socket-proxy (see its comment below).
-name: har
+name: harness-engineering
 
 services:
   traefik:
@@ -35,7 +35,7 @@ services:
     read_only: true
     restart: unless-stopped
 
-  # Docker API for Traefik behind a path allow-list (ADR-0009, security review round 2 H-R2-1). The stock proxy opened
+  # Docker API for Traefik behind a path allow-list. The stock proxy opened
   # the whole /containers prefix, so /containers/{id}/archive returned files (the Postgres secret). This proxy
   # (wollomatic, from-scratch Go image, no shell) allows only what the Traefik docker provider needs:
   #   GET  _ping, version, events, containers/json, containers/{id}/json, networks[/{id}]   (optional /v<api> prefix)
@@ -68,7 +68,7 @@ services:
     read_only: true
     restart: unless-stopped
 
-  # One server, one database and two roles per service (D-0008). Init scripts: infra/postgres/init/README.md.
+  # One server, one database and two roles per service. Init scripts: infra/postgres/init/README.md.
   # The superuser password is read from a file (POSTGRES_PASSWORD_FILE), so `inspect` shows a path, not a value.
   postgres:
     image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
@@ -105,4 +105,4 @@ volumes:
 
 secrets:
   postgres_password:
-    file: ${HAR_SECRETS_DIR:?set HAR_SECRETS_DIR in the env file}/postgres_password
+    file: ${HARNESS_ENGINEERING_SECRETS_DIR:?set HARNESS_ENGINEERING_SECRETS_DIR in the env file}/postgres_password

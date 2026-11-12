@@ -1,5 +1,5 @@
-# Single entry point for developers and CI (D-0002, D-0023).
-# Must run on macOS, Linux and Termux Make; avoid GNU Make 3.82+ features for macOS compatibility (P-0012).
+# Single entry point for developers and CI.
+# Must run on macOS, Linux and Termux Make; avoid GNU Make 3.82+ features for macOS compatibility.
 SHELL := bash
 .DEFAULT_GOAL := help
 
@@ -11,7 +11,7 @@ ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 export GOTOOLCHAIN := local
 
 .PHONY: help check harness harness-test harness-lint spec-validate doctor template-test new-service \
-	up down ps logs compose-config secrets-scan vuln image-scan infra-images deployables deploy
+	up down ps logs compose-config secrets-scan vuln image-scan infra-images deployables deploy rename
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -25,7 +25,7 @@ harness: ## Validate repo structure, registry, catalog, agents, docs
 harness-test: ## Harness unit tests with coverage gate
 	@go -C $(HARNESS_DIR) test -race -coverprofile=coverage.out ./internal/...
 	@set -o pipefail; go -C $(HARNESS_DIR) tool cover -func=coverage.out | awk -v min=$(COVERAGE_MIN) \
-	  '/^total:/ { sub("%","",$$3); if ($$3+0 < min) { printf "coverage %s%% < %s%% (D-0017)\n", $$3, min; exit 1 } \
+	  '/^total:/ { sub("%","",$$3); if ($$3+0 < min) { printf "coverage %s%% < %s%%\n", $$3, min; exit 1 } \
 	  printf "coverage %s%% (min %s%%)\n", $$3, min }'
 
 harness-lint: ## golangci-lint on the harness
@@ -37,7 +37,7 @@ spec-validate: ## OpenSpec strict validation of all changes and specs
 doctor: ## Check required developer tools are present (runs the diagnostic-only scripts/bootstrap.sh)
 	@$(ROOT)scripts/bootstrap.sh
 
-# Local stack and delivery (ADR-0009, ADR-0023). Every Compose run merges the base file, one overlay and each
+# Local stack and delivery. Every Compose run merges the base file, one overlay and each
 # deployable fragment; paths are relative to the repository root.
 COMPOSE_ENV := infra/env/local/compose.env
 COMPOSE_FRAGMENTS := $(wildcard services/*/compose.yaml) $(wildcard apps/*/compose.yaml)
@@ -48,7 +48,7 @@ COMPOSE := DOCKER_GID=$(DOCKER_GID) docker compose --project-directory . --env-f
 COMPOSE_DEPLOY := DOCKER_GID=$(DOCKER_GID) docker compose --project-directory . --env-file $(COMPOSE_ENV) -f infra/compose/compose.yaml -f infra/compose/compose.deploy.yaml $(foreach f,$(COMPOSE_FRAGMENTS),-f $(f))
 BASE ?= origin/main
 
-# Scanners run in CI only (not in check): pinned by digest, tag kept for humans (M6, D-0012).
+# Scanners run in CI only (not in check): pinned by digest, tag kept for humans.
 GITLEAKS_IMAGE ?= zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 TRIVY_IMAGE ?= aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
 GOVULNCHECK_VERSION ?= v1.9.0
@@ -113,6 +113,10 @@ deploy: ## Deploy ENV=dev|prod to HOST (CI calls this; inputs and host-key setup
 new-service: ## Generate services/<name> from templates/go-service (name=<kebab-case>)
 	@test -n "$(name)" || { echo "usage: make new-service name=<kebab-case>"; exit 2; }
 	@./scripts/new-service.sh "$(name)"
+
+rename: ## Rename the project slug in every file, once per new product repository (slug=<kebab-case>)
+	@test -n "$(slug)" || { echo "usage: make rename slug=<kebab-case>"; exit 2; }
+	@./scripts/rename.sh "$(slug)"
 
 template-test: ## Generate a demo service in a temporary root and run its lint and test targets
 	@tmp=$$(mktemp -d) && trap 'rm -rf "$$tmp"' EXIT && \

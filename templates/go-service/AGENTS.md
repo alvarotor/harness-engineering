@@ -15,9 +15,11 @@ Scoped rules for this service. They add to the root [AGENTS.md](../../AGENTS.md)
 - Add a route through the layers, not in `cmd/service`. Keep `context.Context` as the first parameter of I/O functions.
 - Logs go through the request logger (`platform.LoggerFrom(ctx)`). Never log secrets, tokens or personal data.
 - Config changes: add the variable to `platform.LoadConfig` (validated, `_FILE` support is automatic) and to the README.
-- Do not change the ops port, the probe paths, the 20 s shutdown limit or the non-root user (D-0003, D-0009).
-- A database (D-0008) adds a `migrate` subcommand and `migrations/` (versioned SQL, expand/contract), run by the image,
-  never at startup. It uses the `<svc>_app` role at runtime and `<svc>_owner` for migrations.
+- Do not change the ops port, the probe paths, the 20 s shutdown limit or the non-root user.
+- A database adds a `migrate` subcommand and `migrations/` (versioned SQL, expand/contract), run by the image,
+  never at startup, plus the `migrate` step in `infra/deploy/deploy.sh` (devops). It uses the `<svc>_app` role at
+  runtime and `<svc>_owner` for migrations.
 - Tests: `make -C services/__NAME__ test` must pass. Non-trivial new logic needs its own test.
-- Compose: `compose.yaml` keeps `read_only`, `cap_drop: [ALL]`, `no-new-privileges` and `traefik.enable: "false"` unless the
-  security review makes the service public.
+- Compose: `compose.yaml` keeps `read_only`, `cap_drop: [ALL]`, `no-new-privileges`, the `deploy.resources` limits
+  (resize from measured usage, never remove) and `traefik.enable: "false"` unless the security review makes the
+  service public.

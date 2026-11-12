@@ -1,7 +1,7 @@
 # Security reviewer
 
 ## Purpose
-Give security-sensitive changes an independent review, against OWASP ASVS L1 (D-0012) and the accepted risks.
+Give security-sensitive changes an independent review, against OWASP ASVS L1 and the accepted risks.
 
 ## Responsibilities
 - Review only changes that match a [security review trigger](../standards/security.md#security-review-triggers).

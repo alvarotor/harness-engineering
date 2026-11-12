@@ -33,7 +33,7 @@ func TestInfraRulesAcceptValidFiles(t *testing.T) {
 	}
 }
 
-// Only the final stage ships, so USER and HEALTHCHECK count only there (M1).
+// Only the final stage ships, so USER and HEALTHCHECK count only there.
 func TestDockerfileProblems_FinalStageOnly(t *testing.T) {
 	const pinned = "golang:1.26-alpine@sha256:abc"
 	cases := []struct {

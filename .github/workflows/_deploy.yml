@@ -1,4 +1,4 @@
-# Deploy the images built for one commit (ref) to one environment over SSH (ADR-0023, P-0018).
+# Deploy the images built for one commit (ref) to one environment over SSH.
 # Skips itself, and succeeds, while the environment has no DEPLOY_HOST variable. Once DEPLOY_HOST is set, the
 # deploy fails closed unless DEPLOY_KNOWN_HOSTS holds the host's key (no trust on first use).
 # Values reach the shell only through env:. Runtime secrets are written to files, never to the Compose env file.
@@ -95,7 +95,7 @@ jobs:
           paths=$(printf '%s' "$deployables" | jq -r '.[]')
           for path in $paths; do
             name=${path##*/}
-            image="ghcr.io/$owner/har-$name:$REF"
+            image="ghcr.io/$owner/harness-engineering-$name:$REF"
             if ! manifest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}'); then
               echo "deploy: $image is missing: main has not built this commit (already built for dev?)" >&2
               exit 1
@@ -106,7 +106,7 @@ jobs:
               exit 1
             fi
             var=IMAGE_$(printf '%s' "$name" | tr 'a-z-' 'A-Z_')
-            printf '%s=ghcr.io/%s/har-%s@%s\n' "$var" "$owner" "$name" "$digest" >> "$out"
+            printf '%s=ghcr.io/%s/harness-engineering-%s@%s\n' "$var" "$owner" "$name" "$digest" >> "$out"
           done
           printf 'ENV=%s\nDOMAIN=%s\nACME_EMAIL=%s\n' "$ENVIRONMENT" "$DOMAIN" "$ACME_EMAIL" >> "$out"
 

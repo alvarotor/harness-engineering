@@ -4,7 +4,7 @@ package main
 import (
 	"os"
 
-	"har/tools/harness/internal/check"
+	"harness-engineering/tools/harness/internal/check"
 )
 
 func main() {

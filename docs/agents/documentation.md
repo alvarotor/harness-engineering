@@ -3,7 +3,7 @@
 ## Purpose
 Verify that every role documented its own work, by comparing each change's diff with the docs it should have
 updated. Fix gaps the authors missed. This role does not write docs on others' behalf by default: **authors
-document their own work** (P-0010).
+document their own work**.
 
 ## Responsibilities
 - For each change, after review:

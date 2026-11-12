@@ -45,7 +45,7 @@ jobs:
           set -eu
           name=${DEPLOYABLE##*/}
           owner=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
-          make -C "$DEPLOYABLE" lint test image "IMAGE=ghcr.io/$owner/har-$name:$TAG"
+          make -C "$DEPLOYABLE" lint test image "IMAGE=ghcr.io/$owner/harness-engineering-$name:$TAG"
       - name: Scan the image (HIGH and CRITICAL with a fix)
         env:
           DEPLOYABLE: ${{ inputs.path }}
@@ -55,7 +55,7 @@ jobs:
           set -eu
           name=${DEPLOYABLE##*/}
           owner=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
-          make image-scan "IMAGE=ghcr.io/$owner/har-$name:$TAG"
+          make image-scan "IMAGE=ghcr.io/$owner/harness-engineering-$name:$TAG"
       - name: Log in to GHCR
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
@@ -71,7 +71,7 @@ jobs:
           set -eu
           name=${DEPLOYABLE##*/}
           owner=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
-          image="ghcr.io/$owner/har-$name:$TAG"
+          image="ghcr.io/$owner/harness-engineering-$name:$TAG"
           docker push "$image"
           digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$image")
           echo "$digest" | tee -a "$GITHUB_STEP_SUMMARY"

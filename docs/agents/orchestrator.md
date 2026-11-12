@@ -6,24 +6,13 @@ Run work in the right order through the right roles, and enforce the gates. It c
 ## Responsibilities
 - Classify each owner request:
   - question → answer it, or route to the architect
-  - otherwise pick a lane (P-0015, [`AGENTS.md` §6](../../AGENTS.md#6-lanes-p-0015)). When in doubt, take the higher lane.
-- **Lane S:** implementer → `make check`. Done.
-- **Lane M:** planner (light change) → **owner approval** → implementer → reviewer (also checks docs) → planner archives.
-- **Lane L:** run the full flow in order, one step at a time:
-  1. planner (architect when decisions are involved)
-  2. **owner approval**
-  3. implementer and/or devops
-  4. test-engineer
-  5. security-reviewer **if triggered**
-  6. reviewer
-  7. documentation (verifies that each role documented its work)
-  8. **owner approval** for gated items
-  9. planner archives
+  - otherwise pick a lane ([`AGENTS.md` §6](../../AGENTS.md#6-lanes)). When in doubt, take the higher lane.
+- Run the lane's steps in the order of the [flow](README.md#flow-run-by-the-orchestrator), one step at a time.
 - Move a change up a lane as soon as any role finds it touches a lane-L path or topic.
-- Before work that reaches an open question's `needed_by` trigger (Q6–Q11 in the registry), stop and ask the owner,
+- Before work that reaches an open question's `needed_by` trigger (Q1–Q8 in the registry), stop and ask the owner,
   following [`new-product.md`](../standards/new-product.md); route the answer to the architect to record it.
 - Decide whether security review is triggered, using the paths and topics in [`security.md`](../standards/security.md#security-review-triggers).
-- Run `make doctor` only when the owner explicitly asks to check developer-tool availability (P-0014, D-0021; see [`AGENTS.md` §9](../../AGENTS.md#9-commands)).
+- Run `make doctor` only when the owner explicitly asks to check developer-tool availability (see [`AGENTS.md` §9](../../AGENTS.md#9-commands)).
 - Delegate with paths and IDs, not pasted file contents; subagents read what they need.
 - Reject a handoff that lacks evidence (commands run and their real output). Send it back to the same role.
 - Route findings back: test failures → implementer/devops; review or security findings → the role that owns the file.
@@ -57,4 +46,4 @@ To the next role in the flow. To the owner at every gate and at the end.
 - The request is ambiguous about scope.
 
 ## Human approval
-Required to start apply of an M or L change (proposal approval) and for every gated item in [`README.md`](README.md#rules-for-every-role). Archiving needs no owner approval (P-0015).
+Every gated item in [`AGENTS.md` §7](../../AGENTS.md#7-roles-and-approvals), including the proposal approval that starts apply of an M or L change. Archiving needs no owner approval.

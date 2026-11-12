@@ -1,10 +1,10 @@
 # Testing standard
 
-Decision: [ADR-0017](../adr/0017-testing-strategy.md). Summary of what every change must satisfy:
+What every change must satisfy:
 
 | Layer | Required | Tooling | Gate |
 |---|---|---|---|
-| Unit | **all hand-written code**: every Go package has `_test.go`; every TS module has a sibling `*.test.ts(x)` | `go test -race`; the frontend stack's runner (Q11) | coverage **≥ 80 %** per deployable and per `packages/*` library |
+| Unit | **all hand-written code**: every Go package has `_test.go`; every TS module has a sibling `*.test.ts(x)` | `go test -race`; the frontend stack's runner (Q8) | coverage **≥ 80 %** per deployable and per `packages/*` library |
 | Integration | adapters that touch Postgres, other data stores or HTTP | Testcontainers | must pass on PRs touching the deployable |
 | Contract | every proto change | `buf breaking --against main`; generated clients compile | blocks merge |
 | Migration | every migration | apply to an empty DB and to a DB at the previous release | blocks merge |

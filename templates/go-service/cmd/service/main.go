@@ -10,7 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"har/services/__NAME__/internal/platform"
+	"harness-engineering/services/__NAME__/internal/platform"
 )
 
 func main() {

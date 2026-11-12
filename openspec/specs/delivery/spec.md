@@ -85,7 +85,7 @@ The deploy SHALL write each deploy secret to its own file with mode `0600` under
 
 #### Scenario: Secret handed to the deploy
 - **WHEN** the deploy receives a secret entry
-- **THEN** the value is written to its own `0600` file under the host secrets directory (`~/har/secrets`)
+- **THEN** the value is written to its own `0600` file under the host secrets directory (`~/harness-engineering/secrets`)
 
 #### Scenario: Runner cleanup
 - **WHEN** the deploy step ends, successfully or not

@@ -1,12 +1,12 @@
 #!/bin/sh
-# Deploy one environment over SSH (ADR-0023, P-0018). Runs on the CI runner through `make deploy`.
+# Deploy one environment over SSH. Runs on the CI runner through `make deploy`.
 # Usage: deploy.sh <dev|prod> <host> <user> <env-file> <secrets-file> <known-hosts> [ssh-key]
 #   env-file      non-secret release values: IMAGE_<NAME>=ghcr.io/...@sha256:..., ENV, DOMAIN, ACME_EMAIL
-#   secrets-file  NAME=value lines. Each NAME becomes ~/har/secrets/<name in lower case>, mode 0600, and never
+#   secrets-file  NAME=value lines. Each NAME becomes ~/harness-engineering/secrets/<name in lower case>, mode 0600, and never
 #                 goes into an environment variable or the Compose env file
 #   known-hosts   host key lines for <host> (from the DEPLOY_KNOWN_HOSTS variable). Strict host key checking:
 #                 an unknown or changed key fails the deploy; nothing is trusted on first use
-# Remote steps: copy Compose inputs and secrets to ~/har → pull digests → up -d --no-build --wait → health → smoke.
+# Remote steps: copy Compose inputs and secrets to ~/harness-engineering → pull digests → up -d --no-build --wait → health → smoke.
 set -eu
 
 fail() {
@@ -85,7 +85,7 @@ done < "$secrets_file"
 
 # Non-secret environment for Compose: release values plus the secrets folder location on the host.
 cp "$env_file" "$tmp/.env"
-printf 'HAR_SECRETS_DIR=./secrets\n' >> "$tmp/.env"
+printf 'HARNESS_ENGINEERING_SECRETS_DIR=./secrets\n' >> "$tmp/.env"
 
 # Compose inputs: base, deploy overlay, the environment's non-secret config, and every deployable fragment.
 # Fragments are listed explicitly, so stale files on the host are never merged.
@@ -108,20 +108,20 @@ tar -cf "$tmp/bundle.tar" --exclude='infra/env/*/secrets' $sources || fail "coul
 tar -rf "$tmp/bundle.tar" -C "$tmp" .env secrets || fail "could not add the env file and secrets"
 
 echo "deploy: $env_name -> $target ($count secret files)"
-# Remote umask 022 and a traversable ~/har: the non-root Traefik reads its config from a bind mount. Secrets keep
+# Remote umask 022 and a traversable ~/harness-engineering: the non-root Traefik reads its config from a bind mount. Secrets keep
 # their 0600 and 0700 modes from the archive.
-ssh_run 'umask 022 && mkdir -p ~/har && chmod 755 ~/har && cd ~/har && rm -rf infra services apps secrets .env'
-ssh_run 'umask 022 && cd ~/har && tar -xf -' < "$tmp/bundle.tar"
+ssh_run 'umask 022 && mkdir -p ~/harness-engineering && chmod 755 ~/harness-engineering && cd ~/harness-engineering && rm -rf infra services apps secrets .env'
+ssh_run 'umask 022 && cd ~/harness-engineering && tar -xf -' < "$tmp/bundle.tar"
 
 # Compose runs on the host with the socket group from the host (the socket proxy joins it, see compose.yaml).
 # $1 is the Compose subcommand as one shell-quoted string (the remote shell parses it).
 remote_compose() {
   # shellcheck disable=SC2086 # files is a list of -f options
-  ssh_run "cd ~/har && DOCKER_GID=\$(stat -L -c %g /var/run/docker.sock) docker compose --project-directory . --env-file .env $files $1"
+  ssh_run "cd ~/harness-engineering && DOCKER_GID=\$(stat -L -c %g /var/run/docker.sock) docker compose --project-directory . --env-file .env $files $1"
 }
 
 remote_compose 'pull --ignore-buildable'
-# Migrations go here once a service owns a database (ADR-0008), before the stack starts:
+# Migrations go here once a service owns a database, before the stack starts:
 #   remote_compose 'run --rm --no-deps <service> migrate'
 remote_compose 'up -d --no-build --remove-orphans --wait'
 

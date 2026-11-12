@@ -1,4 +1,4 @@
-module har/tools/harness
+module harness-engineering/tools/harness
 
 go 1.26.0
 

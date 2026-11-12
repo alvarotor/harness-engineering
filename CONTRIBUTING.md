@@ -5,7 +5,7 @@ This repository is built by humans and AI agents following the same rules. Start
 
 ## Prerequisites
 
-Supported developer environments: **macOS, Linux, and Termux** (P-0012). The diagnostic needs `git` and a POSIX shell; Make and the tools below are needed for repository commands:
+Supported developer environments: **macOS, Linux, and Termux**. The diagnostic needs `git` and a POSIX shell; Make and the tools below are needed for repository commands:
 
 ```sh
 git clone <repo> && cd <repo>
@@ -42,7 +42,8 @@ Android is not guaranteed.
 | Stop it (volumes are kept) | `make down` |
 | Status and logs | `make ps`; `make logs` (all services) or `make logs SERVICE=<name>` |
 | Validate the Compose merges | `make compose-config` |
-| New backend service (lane L: needs Q6 answered and a `planned` catalog entry first) | `make new-service name=<kebab-case>` |
+| Rename the project slug (once, in a new product repository) | `make rename slug=<kebab-case>` |
+| New backend service (lane L: needs Q1 answered and a `planned` catalog entry first) | `make new-service name=<kebab-case>` |
 | Check the service template still builds and tests | `make template-test` |
 | Release (`vX.Y.Z` on a `main` commit; owner approves the production gate) | `git tag vX.Y.Z && git push origin vX.Y.Z` |
 
@@ -62,12 +63,19 @@ GitHub Actions setup (secrets, environments, branch protection) and the deploy a
    security-reviewer when a security trigger matches, the documentation role, and the owner for gated items.
 7. **Archive:** `openspec archive <name>` merges the delta specs into `openspec/specs/`. No owner approval needed.
 
-Every request runs in a lane (P-0015, [`AGENTS.md` §6](AGENTS.md#6-lanes-p-0015)). Lane S (no observable
+Every request runs in a lane ([`AGENTS.md` §6](AGENTS.md#6-lanes)). Lane S (no observable
 behavior change) skips OpenSpec but still runs `make check`.
 
-## Changing an established decision
+## Changing a rule or a decision
 
-Accepted decisions are stable on purpose. To change one:
+The template starts with **no decisions**: its starting rules live in `ARCHITECTURE.md`, `docs/standards/` and the
+`AGENTS.md` files. Each product is its own repository created from this template, and records its own decisions
+from `D-0001` ([`docs/standards/new-product.md`](docs/standards/new-product.md)).
+
+**Changing a starting rule** (for example another default library): open an OpenSpec change that records the new
+choice as a decision (registry entry + ADR when architectural) and updates the rule's file in the same change.
+
+**Changing an accepted decision.** Accepted decisions are stable on purpose. To change one:
 1. Open an OpenSpec change named `supersede-d-NNNN-<topic>`. Its proposal includes a **Decision change** section:
    the old decision, the new one, why, and what is affected.
 2. Write a new ADR with `Supersedes: NNNN`. Set the old ADR's status to `superseded`; don't change its decision text.
@@ -79,8 +87,9 @@ Accepted decisions are stable on purpose. To change one:
    harness rules, agent instructions, catalog, and existing services.
 5. `make check`, then owner approval, then merge.
 
-**Scoped exceptions** (one service differs from a default) do not supersede a decision. Add them to the
-decision's `exceptions` list with a reason, through a change the owner approves.
+**Scoped exceptions** (one service differs from a default) do not supersede a decision. For a non-default language,
+record a decision with `scope: services/*` (or `apps/*`), the `default_language` and an `exceptions` entry with a
+reason, through a change the owner approves.
 
 ## Commits and branches
 

@@ -4,7 +4,7 @@ Mounted read-only at `/docker-entrypoint-initdb.d` in the `postgres` service. Th
 **once**, on the first start of an empty data volume (`pgdata`). Later changes need a manual migration, not an
 edit here.
 
-Rules (ADR-0008, D-0008):
+Rules:
 
 - One database per service, named after the service: `<svc>`.
 - Two roles per service: `<svc>_owner` (owns the database and runs migrations) and `<svc>_app` (runtime user, DML

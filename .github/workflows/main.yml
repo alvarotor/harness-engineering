@@ -24,7 +24,7 @@ jobs:
       - id: list
         run: echo "matrix=$(make -s deployables ALL=1)" >> "$GITHUB_OUTPUT"
 
-  # shortcut: builds every deployable on each merge; build only changed ones and reuse previous digests when builds get slow (ADR-0023)
+  # shortcut: builds every deployable on each merge; build only changed ones and reuse previous digests when builds get slow
   build:
     needs: list
     if: needs.list.outputs.matrix != '[]'

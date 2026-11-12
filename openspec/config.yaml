@@ -3,30 +3,30 @@ schema: spec-driven
 # Project context injected into every OpenSpec artifact and workflow.
 # Keep this to constraints an agent cannot infer from code. Details live in the linked files.
 context: |
-  Repository = project memory (ADR-0001). AGENTS.md is already loaded. Before writing any artifact, read:
+  Repository = project memory. AGENTS.md is already loaded. Before writing any artifact, read:
   - docs/decisions/registry.yaml (current decisions D-*, preferences P-*, assumptions A-*, open questions Q-*)
-  - only the ARCHITECTURE.md sections and ADRs referenced by affected decisions
-  If a request conflicts with a higher layer (AGENTS.md §2), report the conflict (decision ID, quote,
-  proposed resolution) and wait for the owner. Never silently override a recorded decision.
-  Lanes (P-0015): lane M changes are light (proposal, delta spec, tasks; design only if needed);
+  - only the ARCHITECTURE.md sections, docs/standards and ADRs the change touches
+  If a request conflicts with a higher layer, report it in the AGENTS.md §4 format and wait for the owner.
+  Never silently override a recorded decision.
+  Lanes (AGENTS.md §6): lane M changes are light (proposal, delta spec, tasks; design only if needed);
   lane L changes use every artifact. Lane S needs no change.
-  Product: not chosen yet (Q6, P-0016); deferred choices Q6-Q11 are asked at their trigger, never assumed.
+  Product: not chosen yet (Q1); deferred choices Q1-Q8 are asked at their trigger, never assumed.
   Stage: way of working + first basic architecture; no product features until the owner asks.
 
 rules:
   proposal:
     - List every affected decision ID (D-*, P-*) under "Impact"; write "none" if none.
     - If the change contradicts an accepted decision, add a "Decision change" section that names the superseding ADR to be written. The owner must approve it explicitly.
-    - A new backend service must state its business domain, owned entities/data, and why it is not part of an existing domain (D-0014).
-    - A non-Go backend must justify the core dependency that requires it (D-0004 override rule).
-    - A change that reaches an open question's needed_by trigger (Q6-Q11) must record the owner's answer as a decision first (docs/standards/new-product.md).
+    - A new backend service must state its business domain, owned entities/data, and why it is not part of an existing domain.
+    - A non-Go backend must justify the core dependency that requires it (docs/standards/engineering.md, Go section).
+    - A change that reaches an open question's needed_by trigger (Q1-Q8) must record the owner's answer as a decision first (docs/standards/new-product.md).
   specs:
     - Specs describe observable behavior only; no library or framework names.
     - Every requirement uses SHALL/MUST and has at least one WHEN/THEN scenario.
   design:
     - Reference ADRs by number instead of restating them. New architectural choices need a new ADR plus a registry entry in the same change.
   tasks:
-    - Each task group lands its own unit tests (coverage >= 80%, D-0017) and doc updates; no trailing "write tests" group.
+    - Each task group lands its own unit tests (coverage >= 80%) and doc updates; no trailing "write tests" group.
     - Include tasks to update docs/decisions/registry.yaml, docs/catalog/services.yaml, scoped AGENTS.md and templates when the change affects them.
     - User-facing flows include a Playwright e2e task, or state why e2e is not possible.
     - The last task group runs `make check` and records the result.

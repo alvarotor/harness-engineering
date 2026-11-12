@@ -1,6 +1,6 @@
 services:
   __NAME__:
-    image: ${IMAGE___ENVNAME__:-har-__NAME__:local}
+    image: ${IMAGE___ENVNAME__:-harness-engineering-__NAME__:local}
     build: services/__NAME__
     environment:
       SERVICE_NAME: __NAME__
@@ -8,6 +8,11 @@ services:
     networks: [edge, data]
     read_only: true
     stop_grace_period: 25s   # above SHUTDOWN_TIMEOUT (20s), so the drain finishes before SIGKILL
+    deploy:
+      resources:
+        limits:   # starting values; resize from measured usage. They map to Kubernetes limits later.
+          cpus: "0.50"
+          memory: 256M
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     labels:

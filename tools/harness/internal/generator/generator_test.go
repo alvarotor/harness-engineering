@@ -1,4 +1,4 @@
-// Package generator tests scripts/new-service.sh against a copy of the repository layout.
+// Package generator tests scripts/new-service.sh and scripts/rename.sh against a copy of the repository.
 package generator
 
 import (
@@ -115,11 +115,11 @@ func TestNewService_GeneratesServiceWithoutPlaceholders(t *testing.T) {
 	}
 
 	gomod, _ := os.ReadFile(filepath.Join(dest, "go.mod")) //nolint:gosec // generated file inside t.TempDir()
-	if !strings.Contains(string(gomod), "module har/services/order-api") {
+	if !strings.Contains(string(gomod), "module harness-engineering/services/order-api") {
 		t.Errorf("go.mod = %q", gomod)
 	}
 	compose, _ := os.ReadFile(filepath.Join(dest, "compose.yaml")) //nolint:gosec // generated file inside t.TempDir()
-	if !strings.Contains(string(compose), "${IMAGE_ORDER_API:-har-order-api:local}") {
+	if !strings.Contains(string(compose), "${IMAGE_ORDER_API:-harness-engineering-order-api:local}") {
 		t.Errorf("compose.yaml does not use the UPPER_SNAKE image variable:\n%s", compose)
 	}
 	if !strings.Contains(out, "make -C "+dest+" test") {

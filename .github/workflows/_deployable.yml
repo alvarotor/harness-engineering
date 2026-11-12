@@ -1,4 +1,4 @@
-# Lint, test and build the image of one deployable (services/<name> or apps/<name>), then scan the image (M6).
+# Lint, test and build the image of one deployable (services/<name> or apps/<name>), then scan the image.
 # Used by pull requests. Publishing to GHCR is in _publish.yml (its own ceiling, packages: write).
 name: deployable
 
@@ -43,4 +43,4 @@ jobs:
         run: |
           set -eu
           name=${DEPLOYABLE##*/}
-          make image-scan IMAGE="har-$name:local"
+          make image-scan IMAGE="harness-engineering-$name:local"

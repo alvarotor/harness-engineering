@@ -31,7 +31,7 @@ jobs:
             echo "release: tag '$TAG' is not vX.Y.Z" >&2
             exit 1
           fi
-          # Fast fail only. The real gate is the tag ruleset and prod approval (infra/README.md, H3).
+          # Fast fail only. The real gate is the tag ruleset and prod approval (infra/README.md).
           if ! git merge-base --is-ancestor "$SHA" origin/main; then
             echo "release: $SHA (tag $TAG) is not on main; nothing deployed" >&2
             exit 1
