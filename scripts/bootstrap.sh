@@ -69,7 +69,7 @@ else
 fi
 
 if [ "$missing" -ne 0 ]; then
-  say "install the reported tools, then run 'make doctor'"
+  say "install the reported tools yourself, or ask an AI agent to install them (it will ask for your approval first); then run 'make doctor'"
   exit 1
 fi
 

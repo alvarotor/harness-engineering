@@ -14,8 +14,8 @@ make doctor                 # same diagnostic, through make
 ```
 
 [`scripts/bootstrap.sh`](scripts/bootstrap.sh) is diagnostic-only: it does not install packages, download
-tools, or invoke package managers. Install tools yourself, then use `make doctor` to check their
-presence and `make check` to run repository validation.
+tools, or invoke package managers. Install tools yourself, or ask an AI agent to install them with your
+approval, then use `make doctor` to check their presence and `make check` to run repository validation.
 
 | Step | How |
 |---|---|

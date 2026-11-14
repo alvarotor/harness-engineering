@@ -199,7 +199,7 @@ func TestDoctorReportsMissingTools(t *testing.T) {
 	e.fake("make", "")
 	e.fakeInstallers()
 	out, code := e.runDoctor()
-	expect(t, out, code, 2, "missing go", "missing node", "missing buf", "missing golangci-lint", "missing openspec", "missing docker compose")
+	expect(t, out, code, 2, "missing go", "missing node", "missing buf", "missing golangci-lint", "missing openspec", "missing docker compose", "install the reported tools yourself", "ask an AI agent to install them", "ask for your approval first")
 	if strings.Contains(e.calls(), "apt-get") || strings.Contains(e.calls(), "curl") || strings.Contains(e.calls(), "pkg ") {
 		t.Errorf("doctor must not install or download tools:\n%s", e.calls())
 	}
